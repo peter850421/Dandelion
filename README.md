@@ -144,11 +144,14 @@ connections. Feel free to folk to make this project better.
 - {ID}:EXCHANGE:<box_id>: Hash that contains exchange messages from boxes
 - {ID}:OWN_INFO (hash)
 
+```
 location /dandelion {
         proxy_pass https://127.0.0.1:8080/dandelion;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 1d;
 }
+```
+
 
 

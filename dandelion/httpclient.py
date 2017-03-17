@@ -223,7 +223,7 @@ class BoxAsyncClient(BaseAsyncClient):
         ip = self.ip
         if not ip:
             ip = await self._loop.run_in_executor(None, get_ip)
-        connect_url = URLWrapper("http://"+ip+":"+self.conf["proxy_port"]+"/")("dandelion", self.id, "ws")
+        connect_url = URLWrapper("http://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
         ex_dict = {"ID": self.id,
                    "IP": ip,
                    "PORT": self.conf["proxy_port"],
