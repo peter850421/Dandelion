@@ -1,0 +1,9 @@
+@charset "utf-8";
+/* CSS Document */
+div.main{
+	min-height:300px;
+}
+div.thumbnail{
+	min-height:360px;
+	max-height:360px;
+}
