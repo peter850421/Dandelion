@@ -116,6 +116,8 @@ class BaseAsyncServer(object):
                     ssl_context=ssl_context)
 
     async def register_on_cleanup(self, app):
+        self.rdp.close()
+        await self.rdp.wait_closed()
         for ws in app['websockets']:
             await ws.close()
 

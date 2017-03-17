@@ -11,13 +11,14 @@ import redis
 from .utils import RedisKeyWrapper, URLWrapper
 from .utils import get_key_tail as gktail
 from .utils import wrap_bytes_headers as wrapbh
+from .utils import get_ip
 from .logger import get_logger
 
 
-
 class BaseAsyncClient(object):
-    def __init__(self, id, ip, port,
+    def __init__(self, id, port,
                  entrance_urls,
+                 ip=None,
                  loop=None,
                  redis_address=("localhost", 6379),
                  redis_db=0,
@@ -107,7 +108,7 @@ class BaseAsyncClient(object):
         except:
             self.logger.exception("Fail in connect_entrance")
         finally:
-            self._entrance_ws.pop(url)
+            self._entrance_ws.pop(url, None)
 
     async def send_entrance(self, ws):
         raise NotImplementedError
@@ -143,11 +144,10 @@ class BaseAsyncClient(object):
         """ Called when the loop stop """
         self.logger.info("Cleaning up entrance websockets...")
         self.rdp.close()
-        await self.session.close()
         await self.rdp.wait_closed()
+        await self.session.close()
         for ws in self._entrance_ws.keys():
             await self._entrance_ws[ws].close()
-
 
     async def register_on_startup(self, app):
         app["client_process"] = app.loop.create_task(self.run())
@@ -159,16 +159,25 @@ class BaseAsyncClient(object):
 
 
 class BoxAsyncClient(BaseAsyncClient):
-    def __init__(self, id, ip, port,
+
+    def __init__(self, id, port,
                  entrance_urls=None,
+                 ip=None,
                  loop=None,
                  redis_address=("localhost", 6379),
                  redis_db=0,
                  redis_minsize=1,
                  redis_maxsize=5,
                  ping_entrance_freq=10,
+                 proxy_port=8000,
                  log_level=logging.DEBUG, **kwargs):
-        super().__init__(id, ip, port, entrance_urls,
+        """
+        :param port: where server is listening to
+        :param ip: set ip to None if it is not static
+        :param proxy_port: we assume that proxy server is used
+        """
+        super().__init__(id, port, entrance_urls,
+                         ip=ip,
                          loop=loop,
                          redis_address=redis_address,
                          redis_db=redis_db,
@@ -176,6 +185,9 @@ class BoxAsyncClient(BaseAsyncClient):
                          redis_maxsize=redis_maxsize,
                          ping_entrance_freq=ping_entrance_freq)
         self.logger = get_logger("Box-Client", level=log_level)
+        self.conf.update({
+            "proxy_port": proxy_port
+        })
 
     async def run(self):
         await self.update_self_exchange()
@@ -208,8 +220,16 @@ class BoxAsyncClient(BaseAsyncClient):
 
     async def update_self_exchange(self):
         """ Update Own Exchange Info """
-        ex_dict = {"ID": self.id, "IP": self.ip, "PORT": self.port,
-                   "TYPE": "BOX", "COMMAND": "EXCHANGE"}
+        ip = self.ip
+        if not ip:
+            ip = await self._loop.run_in_executor(None, get_ip)
+        connect_url = URLWrapper("http://"+ip+":"+self.conf["proxy_port"]+"/")("dandelion", self.id, "ws")
+        ex_dict = {"ID": self.id,
+                   "IP": ip,
+                   "PORT": self.conf["proxy_port"],
+                   "TYPE": "BOX",
+                   "COMMAND": "EXCHANGE",
+                   "CONNECT_WS": connect_url}
         with await self.rdp as rdb:
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
 
@@ -218,8 +238,9 @@ class BoxAsyncClient(BaseAsyncClient):
 
 
 class PublisherAsyncClient(BaseAsyncClient):
-    def __init__(self, id, ip, port,
+    def __init__(self, id, port,
                  entrance_urls,
+                 ip=None,
                  min_http_peers=10,
                  loop=None,
                  redis_address=("localhost", 6379),
@@ -228,8 +249,12 @@ class PublisherAsyncClient(BaseAsyncClient):
                  redis_maxsize=10,
                  ping_entrance_freq=3,
                  log_level=logging.DEBUG, **kwargs):
-        super().__init__(id, ip, port,
+
+        if ip is None:
+            ip = get_ip()
+        super().__init__(id, port,
                          entrance_urls,
+                         ip=ip,
                          loop=loop,
                          redis_address=redis_address,
                          redis_db=redis_db,
@@ -237,11 +262,11 @@ class PublisherAsyncClient(BaseAsyncClient):
                          redis_maxsize=redis_maxsize,
                          ping_entrance_freq=ping_entrance_freq,
                          log_level=log_level, **kwargs)
+
         self.logger = get_logger("Publisher", level=log_level)
         self.min_peers = min_http_peers
         self.current_peers = 0
         self._peers_ws = dict()
-
 
     async def run(self):
         asyncio.ensure_future(self.collecting())
@@ -293,8 +318,6 @@ class PublisherAsyncClient(BaseAsyncClient):
                     self._peers_ws[box] = None
                     asyncio.ensure_future(self.connect_box(box))
 
-
-
     def rank_boxes(self):
         """
         According to boxes info , rank boxes into a sorted set
@@ -311,17 +334,16 @@ class PublisherAsyncClient(BaseAsyncClient):
 
     async def connect_box(self, box_id):
         with await self.rdp as rdb:
-            ip, port = await rdb.hmget(self._rk("SEARCH", box_id), "IP", "PORT")
-        if ip is None or port is None:
+            url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
+        if url is None:
             return
-        url = URLWrapper("https://" + ip + ":" + port)("dandelion", box_id, "ws")
         try:
             async with self.session.ws_connect(url) as ws:
                 await self.send_box(ws)
                 self._peers_ws[box_id] = ws
                 self.logger.info("Connect to box %s" % box_id)
                 async for msg in ws:
-                    self.logger.debug(" RECEIVE MSG %s, FROM URL: %s" % (str(msg), url))
+                    self.logger.debug("RECEIVE MSG %s, FROM URL: %s" % (str(msg), url))
                     if msg.type == WSMsgType.TEXT:
                         await self._dispatch(msg, ws)
                     elif msg.type == WSMsgType.CLOSED:
@@ -333,7 +355,7 @@ class PublisherAsyncClient(BaseAsyncClient):
         except:
             self.logger.exception("Fail in connect_box %s" % box_id, exc_info=False)
         finally:
-            self._peers_ws.pop(box_id)
+            self._peers_ws.pop(box_id, None)
 
     async def send_box(self, ws):
         message = {

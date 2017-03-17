@@ -7,6 +7,7 @@ from .utils import filter_bytes_headers
 
 
 async def index(request):
+    request.app["logger"].debug("trigger index!!")
     return web.Response(text="HI {0}".format(request.app["ID"]))
 
 
@@ -36,6 +37,7 @@ class BaseWebSocketHandler(object):
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
+                    self.logger.debug(" RECEIVE MSG %s" % str(msg))
                     breakable = await self._dispatch(msg, ws, request)
                     if breakable:
                         break
@@ -79,7 +81,7 @@ class BaseWebSocketHandler(object):
         try:
             ws.send_json(request)
         except ValueError:
-            self.logger.exception("Could not serialize self_exchange.")
+            self.logger.exception("Could not serialize request.")
         except (RuntimeError, TypeError):
             self.logger.exception("Could not send_json().")
 

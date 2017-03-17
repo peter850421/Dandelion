@@ -3,12 +3,12 @@ import logging
 from multiprocessing import Process
 from .httpclient import BoxAsyncClient, PublisherAsyncClient
 from .httpserver import BoxAsyncServer, EntranceAsyncServer
-import uvloop
 
 
 class Box:
-    def __init__(self, id, ip, port,
+    def __init__(self, id, server_ip, port,
                  entrance_urls,
+                 client_ip=None,
                  loop=None,
                  redis_address=("localhost", 6379),
                  redis_db=0,
@@ -22,7 +22,8 @@ class Box:
                  **kwargs):
         self.conf = {
             "id": id,
-            "ip": ip,
+            "server_ip": server_ip,
+            "client_ip": client_ip,
             "port": port,
             "entrance_urls": entrance_urls,
             "redis_address": redis_address,
@@ -36,7 +37,7 @@ class Box:
             "base_directory": base_directory,
         }
         self.server = BoxAsyncServer(id=self.conf["id"],
-                                     ip=self.conf["ip"],
+                                     ip=self.conf["server_ip"],
                                      port=self.conf["port"],
                                      redis_address=self.conf["redis_address"],
                                      redis_db=self.conf["redis_db"],
@@ -51,10 +52,10 @@ class Box:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         client = BoxAsyncClient(id=self.conf["id"],
-                                ip=self.conf["ip"],
                                 port=self.conf["port"],
-                                loop=loop,
                                 entrance_urls=self.conf["entrance_urls"],
+                                ip=self.conf["client_ip"],
+                                loop=loop,
                                 redis_address=self.conf["redis_address"],
                                 redis_db=self.conf["redis_db"],
                                 redis_minsize=self.conf["client_redis_minsize"],

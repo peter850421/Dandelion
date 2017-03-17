@@ -17,12 +17,14 @@ if __name__ == '__main__':
         f = open("box-id.txt", "w")
         f.write(id)
         f.close()
+    print("Your ID: %s" % id)
     # Load configfile
-    f = open("dandelion.yaml", "r")
+    f = open("config.yaml", "r")
     config = yaml.safe_load(f)
     redis_address = (config["REDIS_HOST"],config["REDIS_PORT"])
     box = Box(id,
-              ip=config["BOX_IP"],
+              server_ip=config["BOX_SERVER_IP"],
+              client_ip=None,
               port=config["BOX_PORT"],
               entrance_urls=config["ENTRANCE_URLS"],
               redis_address=redis_address,

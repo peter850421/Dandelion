@@ -1,5 +1,20 @@
 import aiohttp
 import json
+import requests
+
+GET_IP_URL = [
+              'http://bot.whatismyipaddress.com',
+              'http://icanhazip.com',
+              'http://ipecho.net/plain',
+              # 'https://api.ipify.org',
+              # 'https://myexternalip.com/raw',
+              # 'https://ifconfig.co/ip',
+              ]
+
+url_geo = [
+    "http://ip-api.com/json",
+    'http://ipinfo.io/json'
+]
 
 
 def redis_key_wrap(*args):
@@ -11,13 +26,6 @@ def redis_key_wrap(*args):
         else:
             s = s + ":" + str(args[i])
     return s
-
-
-url_geo = [
-    "http://ip-api.com/json",
-    'http://ipinfo.io/json'
-]
-
 
 class RedisKeyWrapper:
     def __init__(self, *args):
@@ -92,4 +100,15 @@ def filter_bytes_headers(message):
     headers, data = message.split(b"</Dandelion>", 1)
     headers = json.loads(headers.split(b"<Dandelion>")[1].decode("utf-8"))
     return headers, data
+
+def get_ip():
+    ip = None
+    for url in GET_IP_URL:
+        try:
+            ip = str(requests.get(url, timeout=3).text.replace('\n', ''))
+            if len(ip.split('.')) == 4:
+                return ip
+        except requests.exceptions.RequestException as e:
+            pass
+    return ip
 

@@ -4,4 +4,5 @@ redis
 PyYAML
 uvloop
 colorlog
+requests
 

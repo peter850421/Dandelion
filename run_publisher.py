@@ -16,7 +16,8 @@ if __name__ == '__main__':
         f = open("publisher-id.txt", "w")
         f.write(id)
         f.close()
-    f = open("dandelion.yaml", "r")
+    print("Your ID: %s" % id)
+    f = open("config.yaml", "r")
     config = yaml.safe_load(f)
     redis_address = (config["REDIS_HOST"], config["REDIS_PORT"])
     publisher = Publisher(id,

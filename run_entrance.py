@@ -15,7 +15,8 @@ if __name__ == '__main__':
         f = open("entrance-id.txt", "w")
         f.write(id)
         f.close()
-    f = open("dandelion.yaml", "r")
+    print("Your ID: %s" % id)
+    f = open("config.yaml", "r")
     config = yaml.safe_load(f)
     redis_address = (config["REDIS_HOST"], config["REDIS_PORT"])
     entrance = Entrance(id=id, ip=config["ENTRANCE_IP"], port=config["ENTRANCE_PORT"],
