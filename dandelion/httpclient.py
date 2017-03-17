@@ -326,10 +326,11 @@ class PublisherAsyncClient(BaseAsyncClient):
         rdb = redis.StrictRedis(host=self.conf["redis_address"][0],
                                 port=self.conf["redis_address"][1],
                                 db=self.conf["redis_db"],
-                                encoding="utf-8")
+                                encoding="utf-8",
+                                decode_responses=True)
         boxes = rdb.keys(self._rk("SEARCH", "box*"))
         for box in boxes:
-            box = gktail(box.decode())
+            box = gktail(box)
             rdb.zadd(self._rk("BOX_RANKING"), 0, box)
 
     async def connect_box(self, box_id):
@@ -460,7 +461,8 @@ class FileManager:
         self._rk = RedisKeyWrapper(self.id)
         self.rdb = redis.StrictRedis(host=redis_address[0],
                                      port=redis_address[1],
-                                     db=redis_db)
+                                     db=redis_db,
+                                     decode_responses=True)
 
     def push(self, filename):
         assert(isinstance(filename, str))
