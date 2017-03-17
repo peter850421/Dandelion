@@ -472,7 +472,7 @@ class FileManager:
         :return: dictionary of the filename in redis, if not exist then return none
         """
         response = self.rdb.hgetall(self._rk("FILE", "PROCESSED_FILES", filename))
-        if response is not None:
+        if len(response):
             try:
                 box_id = response["ID"]
                 box_info = self.rdb.hgetall(self._rk("SEARCH", box_id))
