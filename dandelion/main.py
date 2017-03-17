@@ -4,7 +4,6 @@ from multiprocessing import Process
 from .httpclient import BoxAsyncClient, PublisherAsyncClient
 from .httpserver import BoxAsyncServer, EntranceAsyncServer
 
-
 class Box:
     def __init__(self, id, server_ip, port,
                  entrance_urls,

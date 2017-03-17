@@ -448,10 +448,15 @@ class FileManager:
     Future development:
     - Users could send their files via network instead of local machine.
     """
-    def __init__(self, id,
+    def __init__(self,
                  redis_address=("localhost", 6379),
                  redis_db=0,):
-        self.id = id
+        try:
+            f = open("publisher-id.txt", 'r')
+            self.id = f.read()
+            f.close()
+        except IOError:
+            raise Exception("Can't find publisher-id.txt.")
         self._rk = RedisKeyWrapper(self.id)
         self.rdb = redis.StrictRedis(host=redis_address[0],
                                      port=redis_address[1],
@@ -470,7 +475,11 @@ class FileManager:
         if response is not None:
             try:
                 box_id = response["ID"]
-                response.update(self.rdb.hgetall(self._rk("SEARCH", box_id)))
+                box_info = self.rdb.hgetall(self._rk("SEARCH", box_id))
+                if not len(box_info):
+                    logging.error("Can't find %s 's Info, return box's id only." % box_id)
+                else:
+                    response.update(box_info)
             except KeyError:
                 logging.exception("Can't get Key ID")
         return response
