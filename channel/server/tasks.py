@@ -139,7 +139,6 @@ def m3u8_trans(pathname, publisher_id):
 
 @app.task
 def update_M3U8(ts_file, publisher_id):
-    logging.info("Updating %s" % (ts_file))
     stream_name, ts      = ts_file.rsplit('/', 1)
     pathname            = M3U8_WRITE_DIR+'/'+stream_name+'/'+'index.m3u8'
     m = FileManager(publisher_id)
@@ -165,7 +164,7 @@ def update_M3U8(ts_file, publisher_id):
         if ts in line:
             if box_ip is not None and box_port is not None:
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
-                line = get_url_prefix + publisher_id + M3U8_READ_DIR + stream_name + "/" + line
+                line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
         st.append(line)
         line = outfile.readline()
     outfile.seek(0)
