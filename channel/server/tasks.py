@@ -109,6 +109,7 @@ def m3u8_trans(pathname, publisher_id):
     outfile.seek(0)
     line = infile.readline()
     m = FileManager(publisher_id)
+    lines_zadd = []
     while line:
         if '.ts' == line.rstrip()[-3:]:
             answer = m.ask(path+line)
@@ -124,12 +125,14 @@ def m3u8_trans(pathname, publisher_id):
             else:
                 #get_url_prefix = "http://"+SERVER_IP+":"+SERVER_PORT+"/"
                 #line = get_url_prefix + MEDIA_GET_DIR + stream_name + "/" + line
-                rdb.zadd(redis_ts_sorted_set, int(time.time())+m3u8_time_waiting,stream_name + "/" + line.rsplit('\n', 1)[0])
+                lines_zadd.append(line)
         outfile.write(line)
         line = infile.readline()
     infile.close()
     outfile.truncate()
     outfile.close()
+    for line in lines_zadd:
+        rdb.zadd(redis_ts_sorted_set, int(time.time()) + m3u8_time_waiting, stream_name + "/" + line.rsplit('\n', 1)[0]
 
 
 @app.task
@@ -162,6 +165,7 @@ def update_M3U8(ts_file, publisher_id):
         outfile.write(line)
         line = outfile.readline()
     outfile.truncate()
+    outfile.flush()
     outfile.close()
 
 
@@ -171,9 +175,8 @@ def check_ts_sorted_set(publisher_id):
     rdb = redis.StrictRedis(host=configfile.REDIS_HOST, decode_responses=True)
     #(redis_ts_sorted_set,TIME,stream_name + "/" + line)
     while True:
-        ts_set = rdb.zrangebyscore(redis_ts_sorted_set, 0, 'inf')
-        for ts in ts_set:
+        ts_set = rdb.zrangebyscore(redis_ts_sorted_set, 0, 'inf', withscores=True)
+        for ts, ts_score in ts_set:
             update_M3U8.delay(ts, publisher_id)
-            ts_score = rdb.zscore(redis_ts_sorted_set ,ts)
             if ts_score < int(time.time()):
-                rdb.zrem("channel_expire_set",ts)
+                rdb.zrem(redis_ts_sorted_set, ts)

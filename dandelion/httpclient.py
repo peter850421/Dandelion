@@ -401,6 +401,7 @@ class PublisherAsyncClient(BaseAsyncClient):
                 "MSG": msg,
             }
             with await self.redis_pool as rdb:
+                self.logger.debug("Save SENT FILE %s" % (self._rk("FILE", "PROCESSED_FILES", file_path)))
                 await rdb.hmset_dict(self._rk("FILE", "PROCESSED_FILES", file_path), save_dict)
 
     async def pick_box(self, rdb, timeout=1):
