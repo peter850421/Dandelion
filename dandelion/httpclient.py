@@ -20,7 +20,7 @@ class BaseAsyncClient(object):
                  entrance_urls,
                  ip=None,
                  loop=None,
-                 redis_address=("localhost", 6379),
+                 redis_address=("127.0.0.1", 6379),
                  redis_db=0,
                  redis_minsize=1,
                  redis_maxsize=5,
@@ -449,15 +449,10 @@ class FileManager:
     Future development:
     - Users could send their files via network instead of local machine.
     """
-    def __init__(self,
-                 redis_address=("localhost", 6379),
+    def __init__(self, id,
+                 redis_address=("127.0.0.1", 6379),
                  redis_db=0,):
-        try:
-            f = open("publisher-id.txt", 'r')
-            self.id = f.read()
-            f.close()
-        except IOError:
-            raise Exception("Can't find publisher-id.txt.")
+        self.id = id
         self._rk = RedisKeyWrapper(self.id)
         self.rdb = redis.StrictRedis(host=redis_address[0],
                                      port=redis_address[1],

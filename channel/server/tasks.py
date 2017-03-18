@@ -13,7 +13,7 @@ try:
 except ImportError:
     import queue
 
- try:
+try:
     f = open("publisher-id.txt", 'r')
     publisher_id = f.read()
     f.close()
@@ -76,7 +76,7 @@ def mother_m3u8_modify(pathname):
     logmsg("MODIFY MOTHER M3U8 %s." % pathname)
 
 @app.task
-def m3u8_trans(pathname):
+def m3u8_trans(pathname, publisher_id):
     """
     -Read line from child m3u8
     """
@@ -108,12 +108,16 @@ def m3u8_trans(pathname):
     outfile = open(output_dir, "r+")
     outfile.seek(0)
     line = infile.readline()
+    m = FileManager(publisher_id)
     while line:
         if '.ts' == line.rstrip()[-3:]:
-            m = FileManager(publisher_id)
             answer = m.ask(path+line)
-            box_ip = answer['IP']
-            box_port = answer['PORT']
+            box_ip, box_port = (None, None)
+            try:
+                box_ip = answer['IP']
+                box_port = answer['PORT']
+            except KeyError:
+                pass
             if box_ip is not None and box_port is not None:
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + stream_name + "/" + line
@@ -129,7 +133,7 @@ def m3u8_trans(pathname):
 
 
 @app.task
-def update_M3U8(ts_file):
+def update_M3U8(ts_file, publisher_id):
     stream_name,ts      = ts_file.resplit('/', 1)
     pathname            = M3U8_WRITE_DIR+'/'+stream_name+'/'+'index.m3u8'
     m = FileManager(publisher_id)
@@ -162,14 +166,14 @@ def update_M3U8(ts_file):
 
 
 ### 檢查REDIS_TS_SORTED_SET 若ts對應box_id有值 則修改outfile_m3u8
-def check_ts_sorted_set():
+def check_ts_sorted_set(publisher_id):
     # Connect to redis
     rdb = redis.StrictRedis(host=configfile.REDIS_HOST)
     #(redis_ts_sorted_set,TIME,stream_name + "/" + line)
     while True:
         ts_set = rdb.zrangebyscore(redis_ts_sorted_set, 0, 'inf')
         for ts in ts_set:
-            update_M3U8.delay(ts)
+            update_M3U8.delay(ts, publisher_id)
             ts_score = rdb.zscore(redis_ts_sorted_set ,ts)
             if ts_score < int(time.time()):
                 rdb.zrem("channel_expire_set",ts)
