@@ -137,6 +137,7 @@ def m3u8_trans(pathname, publisher_id):
 
 @app.task
 def update_M3U8(ts_file, publisher_id):
+    logging.debug("Updating %s" % (ts_file))
     stream_name, ts      = ts_file.rsplit('/', 1)
     pathname            = M3U8_WRITE_DIR+'/'+stream_name+'/'+'index.m3u8'
     m = FileManager(publisher_id)
