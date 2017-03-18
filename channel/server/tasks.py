@@ -147,7 +147,7 @@ def update_M3U8(ts_file, publisher_id):
         box_ip=answer['IP']
         box_port=answer['PORT']
     except KeyError:
-        logging.exception("Can't find IP or PORT in answer.")
+        logging.exception("Can't find IP or PORT in answer.", exc_info=False)
     if box_ip is None or box_port is None:
         return
     try:
@@ -167,6 +167,7 @@ def update_M3U8(ts_file, publisher_id):
     outfile.truncate()
     outfile.flush()
     outfile.close()
+    logging.info("Update %s" % ts)
 
 
 ### 檢查REDIS_TS_SORTED_SET 若ts對應box_id有值 則修改outfile_m3u8
