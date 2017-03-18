@@ -118,12 +118,10 @@ connections. Feel free to folk to make this project better.
 - {ID}:SUBSCRIBE:{PUBLISHER ID}
 - {ID}:EXPIRE_FILES  (sorted set)
 
-
-
-##Publisher
-#####ID
+## Publisher
+##### ID
 - publisher-(HASH)
-#####Redis KEY Namespace
+##### Redis KEY Namespace
 - {ID}:SEARCH:{BOX_ID} (hash)
 - {ID}:SELF_INFO (hash)
 - {ID}:BOX_RANKING  (sorted set)

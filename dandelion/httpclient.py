@@ -241,7 +241,10 @@ class BoxAsyncClient(BaseAsyncClient):
             expire_files = await rdb.zrangebyscore(self._rk("EXPIRE_FILES"),
                                                    min=0,
                                                    max=int(time.time()))
-            await rdb.zrem(self._rk("EXPIRE_FILES"), *expire_files)
+            if len(expire_files):
+                await rdb.zrem(self._rk("EXPIRE_FILES"), expire_files)
+            else:
+                return
         for file in expire_files:
             try:
                 os.remove(file)
