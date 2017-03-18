@@ -33,6 +33,7 @@ m3u8_media_amount   = configfile.M3U8_MEDIA_AMOUNT
 expire_media_time   = configfile.EXPIRE_MEDIA_TIME
 m3u8_time_waiting   = configfile.M3U8_TIME_WAITING
 redis_ts_sorted_set = configfile.REDIS_EXPIRE_TS
+REDIS_HOST          = configfile.REDIS_HOST
 
 
 def logmsg(msg):
@@ -132,12 +133,13 @@ def m3u8_trans(pathname, publisher_id):
     outfile.truncate()
     outfile.close()
     for line in lines_zadd:
-        rdb.zadd(redis_ts_sorted_set, int(time.time()) + m3u8_time_waiting, stream_name + "/" + line.rsplit('\n', 1)[0])
+        rdb.zadd(redis_ts_sorted_set, int(time.time()) + m3u8_time_waiting,
+                 stream_name + "/" + line.rsplit('\n', 1)[0])
 
 
 @app.task
 def update_M3U8(ts_file, publisher_id):
-    logging.debug("Updating %s" % (ts_file))
+    logging.info("Updating %s" % (ts_file))
     stream_name, ts      = ts_file.rsplit('/', 1)
     pathname            = M3U8_WRITE_DIR+'/'+stream_name+'/'+'index.m3u8'
     m = FileManager(publisher_id)
@@ -169,16 +171,19 @@ def update_M3U8(ts_file, publisher_id):
     outfile.flush()
     outfile.close()
     logging.info("Update %s" % ts)
+    rdb = redis.StrictRedis(host=REDIS_HOST, decode_responses=True)
+    rdb.zrem(redis_ts_sorted_set, ts_file)
 
 
 ### 檢查REDIS_TS_SORTED_SET 若ts對應box_id有值 則修改outfile_m3u8
 def check_ts_sorted_set(publisher_id):
     # Connect to redis
-    rdb = redis.StrictRedis(host=configfile.REDIS_HOST, decode_responses=True)
+    rdb = redis.StrictRedis(host=REDIS_HOST, decode_responses=True)
     #(redis_ts_sorted_set,TIME,stream_name + "/" + line)
     while True:
         ts_set = rdb.zrangebyscore(redis_ts_sorted_set, 0, 'inf', withscores=True)
         for ts, ts_score in ts_set:
-            update_M3U8.delay(ts, publisher_id)
             if ts_score < int(time.time()):
                 rdb.zrem(redis_ts_sorted_set, ts)
+            else:
+                update_M3U8.delay(ts, publisher_id)
