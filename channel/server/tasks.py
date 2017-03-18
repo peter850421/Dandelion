@@ -122,7 +122,7 @@ def m3u8_trans(pathname, publisher_id):
                 pass
             if box_ip is not None and box_port is not None:
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
-                line = get_url_prefix + publisher_id + M3U8_READ_DIR + stream_name + "/" + line
+                line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
             else:
                 #get_url_prefix = "http://"+SERVER_IP+":"+SERVER_PORT+"/"
                 #line = get_url_prefix + MEDIA_GET_DIR + stream_name + "/" + line
