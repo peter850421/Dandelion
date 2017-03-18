@@ -132,7 +132,7 @@ def m3u8_trans(pathname, publisher_id):
     outfile.truncate()
     outfile.close()
     for line in lines_zadd:
-        rdb.zadd(redis_ts_sorted_set, int(time.time()) + m3u8_time_waiting, stream_name + "/" + line.rsplit('\n', 1)[0]
+        rdb.zadd(redis_ts_sorted_set, int(time.time()) + m3u8_time_waiting, stream_name + "/" + line.rsplit('\n', 1)[0])
 
 
 @app.task
