@@ -43,7 +43,7 @@ if __name__ == '__main__':
     notifier   = pyinotify.AsyncNotifier(wm, handler)
     wm.add_watch(configfile.M3U8_WATCH_PATH, mask, rec=True, auto_add=True)
     print("Notifier start loop...")
-    check_ts_process = multiprocessing.Process(target=check_ts_sorted_set, args=())
+    check_ts_process = multiprocessing.Process(target=check_ts_sorted_set, args=(publisher_id,))
     try:
         check_ts_process.start()
         asyncore.loop()

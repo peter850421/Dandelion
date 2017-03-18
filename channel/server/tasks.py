@@ -168,7 +168,7 @@ def update_M3U8(ts_file, publisher_id):
 ### 檢查REDIS_TS_SORTED_SET 若ts對應box_id有值 則修改outfile_m3u8
 def check_ts_sorted_set(publisher_id):
     # Connect to redis
-    rdb = redis.StrictRedis(host=configfile.REDIS_HOST)
+    rdb = redis.StrictRedis(host=configfile.REDIS_HOST, decode_responses=True)
     #(redis_ts_sorted_set,TIME,stream_name + "/" + line)
     while True:
         ts_set = rdb.zrangebyscore(redis_ts_sorted_set, 0, 'inf')
