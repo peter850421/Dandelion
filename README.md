@@ -1,6 +1,6 @@
 # Dandelion
 
-##Abstract
+## Abstract
 Dandelion platform aims to optimize bandwidth usage by re-allocating idle bandwidth for other purposes, 
 such as live streaming.  The platform is consist of an "entrance server", "boxes", and "publishers". 
 
@@ -22,9 +22,9 @@ connections. Feel free to folk to make this project better.
 ![alt tag](https://github.com/bruce20036/Dandelion/blob/master/screenshot.png)
 
 
-##Document
-###Point to Point Exchange Info format
-#####Entrance to Box
+## Document
+### Point to Point Exchange Info format
+##### Entrance to Box
 - ID
 - IP
 - PORT
@@ -32,7 +32,7 @@ connections. Feel free to folk to make this project better.
 - TYPE: Entrance
 
 
-#####Box to Entrance
+##### Box to Entrance
 - ID
 - IP
 - PORT
@@ -53,7 +53,7 @@ connections. Feel free to folk to make this project better.
     - ORG
     - LOC
 
-#####Entrance to Box
+##### Entrance to Box
 - ID
 - IP
 - PORT
@@ -62,7 +62,7 @@ connections. Feel free to folk to make this project better.
 - ENTRANCE_URLS (List)
 
 
-#####Publisher to Entrance
+##### Publisher to Entrance
 - ID
 - IP
 - PORT
@@ -77,7 +77,7 @@ connections. Feel free to folk to make this project better.
     - ORG
     - LOC
 
-#####Entrance to Publisher
+##### Entrance to Publisher
 - ID
 - IP
 - PORT
@@ -90,8 +90,8 @@ connections. Feel free to folk to make this project better.
 - ENTRANCE_URL
     - {Entrance URL}
 
-#####Publisher to Box (IN BINARY)
-######SEARCHING
+##### Publisher to Box (IN BINARY)
+###### SEARCHING
 - ID
 - IP
 - PORT
@@ -99,7 +99,7 @@ connections. Feel free to folk to make this project better.
 - TYPE: PUBLISHER
 
 
-######TRANSFER FILES
+###### TRANSFER FILES
 - Format: b'<Dandelion>'+ (BINARY HEADERS IN JSON) + b'</Dandelion>' + file's content
 - HEADERS
     - ID
@@ -109,10 +109,10 @@ connections. Feel free to folk to make this project better.
     - FILE_PATH
     
 
-##Box
-#####ID
+## Box
+##### ID
 - box-(HASH)
-###Redis KEY Namespace
+### Redis KEY Namespace
 - {ID}:SELF_EXCHANGE
 - {ID}:EXCHANGE
 - {ID}:SUBSCRIBE:{PUBLISHER ID}
@@ -132,14 +132,14 @@ connections. Feel free to folk to make this project better.
 
 
 
-##Entrance Server 
-#####ID
+## Entrance Server 
+##### ID
 - entrance-(HASH)
-#####URL (Base_url/)
+##### URL (Base_url/)
 - index
 - ws_change/ : handling incoming websocket
 
-#####Redis KEY Namespace
+##### Redis KEY Namespace
 - {ID}:BOX_SET: Set that contains all the available box
 - {ID}:EXCHANGE:<box_id>: Hash that contains exchange messages from boxes
 - {ID}:OWN_INFO (hash)
