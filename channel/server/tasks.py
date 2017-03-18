@@ -124,7 +124,7 @@ def m3u8_trans(pathname, publisher_id):
             else:
                 #get_url_prefix = "http://"+SERVER_IP+":"+SERVER_PORT+"/"
                 #line = get_url_prefix + MEDIA_GET_DIR + stream_name + "/" + line
-                rdb.zadd(redis_ts_sorted_set, int(time.time())+m3u8_time_waiting,stream_name + "/" + line)
+                rdb.zadd(redis_ts_sorted_set, int(time.time())+m3u8_time_waiting,stream_name + "/" + line.rsplit('\n', 1)[0])
         outfile.write(line)
         line = infile.readline()
     infile.close()
@@ -139,7 +139,7 @@ def update_M3U8(ts_file, publisher_id):
     m = FileManager(publisher_id)
     box_ip = None
     box_port = None
-    answer = m.ask(M3U8_WRITE_DIR + '/' + ts_file)
+    answer = m.ask(M3U8_READ_DIR + '/' + ts_file)
     try:
         box_ip=answer['IP']
         box_port=answer['PORT']
