@@ -187,3 +187,4 @@ def check_ts_sorted_set(publisher_id):
                 rdb.zrem(redis_ts_sorted_set, ts)
             else:
                 update_M3U8.delay(ts, publisher_id)
+        time.sleep(1)
