@@ -124,9 +124,10 @@ def m3u8_trans(pathname, publisher_id):
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
             else:
-                #get_url_prefix = "http://"+SERVER_IP+":"+SERVER_PORT+"/"
-                #line = get_url_prefix + MEDIA_GET_DIR + stream_name + "/" + line
                 lines_zadd.append(line)
+                get_url_prefix = "http://"+SERVER_IP+":"+SERVER_PORT+"/"
+                line = get_url_prefix + MEDIA_GET_DIR + "/" + stream_name + "/" + line
+
         outfile.write(line)
         line = infile.readline()
     infile.close()
