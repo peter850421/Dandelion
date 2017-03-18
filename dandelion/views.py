@@ -135,6 +135,15 @@ class BoxWebSocketHandler(BaseWebSocketHandler):
             outfile.write(data)
             outfile.close()
             self.logger.info("Receive %s from %s" % (headers["FILE_PATH"], self.connect_id))
+            try:
+                ttl = int(headers["TTL"])
+                if ttl:
+                    with await self.rdp as rdb:
+                        await rdb.zadd(self._rk("EXPIRE_FILES"),
+                                       int(time.time()) + ttl,
+                                       file_path)
+            except KeyError:
+                pass
         except KeyError:
             self.logger.exception("No key 'FILE_PATH' in headers.")
 

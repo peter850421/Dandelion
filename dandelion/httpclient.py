@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+import os
 import random
 import aioredis
 import time
@@ -194,6 +196,7 @@ class BoxAsyncClient(BaseAsyncClient):
         asyncio.ensure_future(self.ping_entrances())
         while True:
             await self.update_self_exchange()
+            await self.delete_expire_files()
             await asyncio.sleep(10)
 
     async def ping_entrances(self):
@@ -232,6 +235,19 @@ class BoxAsyncClient(BaseAsyncClient):
                    "CONNECT_WS": connect_url}
         with await self.rdp as rdb:
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
+
+    async def delete_expire_files(self):
+        with await self.rdp as rdb:
+            expire_files = await rdb.zrangebyscore(self._rk("EXPIRE_FILES"),
+                                                   min=0,
+                                                   max=int(time.time()))
+            await rdb.zrem(self._rk("EXPIRE_FILES"), *expire_files)
+        for file in expire_files:
+            try:
+                os.remove(file)
+            except OSError:
+                os.removedirs(file)
+            self.logger.debug("Delete %s." % file)
 
     async def peer_connect(self, url, type):
         pass
@@ -357,6 +373,8 @@ class PublisherAsyncClient(BaseAsyncClient):
             self.logger.exception("Fail in connect_box %s" % box_id, exc_info=False)
         finally:
             self._peers_ws.pop(box_id, None)
+            with await self.rdp as rdb:
+                await rdb.zrem(self._rk("BOX_RANKING"), box_id)
 
     async def send_box(self, ws):
         message = {
@@ -372,7 +390,9 @@ class PublisherAsyncClient(BaseAsyncClient):
         while True:
             msg = "Success"
             with await self.redis_pool as rdb:
-                file_path = str((await rdb.blpop(self._rk("FILE", "FILES_SENDING_QUEUE")))[1])
+                task = (await rdb.blpop(self._rk("FILE", "FILES_SENDING_QUEUE")))[1]
+                task = json.loads(task)
+                file_path = task["FILE_PATH"]
                 box, ws = await self.pick_box(rdb, timeout=1)
                 if ws is None:
                     await rdb.lpush(self._rk("FILE", "FILES_SENDING_QUEUE"), file_path)
@@ -381,10 +401,7 @@ class PublisherAsyncClient(BaseAsyncClient):
                     continue
             try:
                 infile = open(file_path, "rb")
-                headers = {
-                    "FILE_PATH": file_path,
-                }
-                b_hdrs = wrapbh(headers)
+                b_hdrs = wrapbh(task)
                 try:
                     ws.send_bytes(b_hdrs + infile.read())
                 except TypeError:
@@ -460,9 +477,22 @@ class FileManager:
                                      db=redis_db,
                                      decode_responses=True)
 
-    def push(self, filename):
-        assert(isinstance(filename, str))
-        self.rdb.rpush(self._rk("FILE", "FILES_SENDING_QUEUE"), filename)
+    def push(self, file_path, ttl=60, **kwargs):
+        """
+        :param ttl: if ttl is 0, then it will live forever in boxes, otherwise time unit is sec
+        :param kwargs: other headers
+        """
+        assert(isinstance(file_path, str))
+        d = {
+            "FILE_PATH": file_path,
+            "TTL": ttl,
+        }
+        d.update(kwargs)
+        try:
+            task = json.dumps(d)
+            self.rdb.rpush(task, file_path)
+        except TypeError:
+            logging.exception("Item can't be serialized.")
 
     def ask(self, filename):
         """

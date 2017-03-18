@@ -116,6 +116,7 @@ connections. Feel free to folk to make this project better.
 - {ID}:SELF_EXCHANGE
 - {ID}:EXCHANGE
 - {ID}:SUBSCRIBE:{PUBLISHER ID}
+- {ID}:EXPIRE_FILES  (sorted set)
 
 
 
