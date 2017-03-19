@@ -178,6 +178,9 @@ class BoxAsyncClient(BaseAsyncClient):
         :param ip: set ip to None if it is not static
         :param proxy_port: we assume that proxy server is used
         """
+        if "box-" not in id:
+            self.logger.warning("ID does not contain box-")
+            raise ValueError
         super().__init__(id, port, entrance_urls,
                          ip=ip,
                          loop=loop,
@@ -271,7 +274,7 @@ class PublisherAsyncClient(BaseAsyncClient):
 
         if ip is None:
             ip = get_ip()
-        if "publisher-" not in self.id:
+        if "publisher-" not in id:
             self.logger.warning("ID does not contain publisher-")
             raise ValueError
         super().__init__(id, port,

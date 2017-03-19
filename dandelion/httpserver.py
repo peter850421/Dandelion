@@ -138,6 +138,9 @@ class EntranceAsyncServer(BaseAsyncServer):
                  amount_of_boxes_per_request=20,
                  log_level=logging.DEBUG,
                  **kwargs):
+        if "entrance-" not in id:
+            self.logger.warning("ID does not contain entrance-")
+            raise ValueError
         super().__init__(id,
                          ip=ip,
                          port=port,
@@ -147,9 +150,6 @@ class EntranceAsyncServer(BaseAsyncServer):
                          redis_minsize=redis_minsize,
                          redis_maxsize=redis_maxsize,
                          **kwargs)
-        if "entrance-" not in self.id:
-            self.logger.warning("ID does not contain entrance-")
-            raise ValueError
         self.logger = get_logger("Entrance", level=log_level)
         self.app["logger"] = self.logger
         self.conf["expire_box_time"] = expire_box_time
@@ -205,7 +205,7 @@ class BoxAsyncServer(BaseAsyncServer):
                  log_level=logging.DEBUG,
                  base_directory="/tmp",
                  **kwargs):
-        if "box-" not in self.id:
+        if "box-" not in id:
             self.logger.warning("ID does not contain box-")
             raise ValueError
 
