@@ -69,13 +69,14 @@ class BaseAsyncClient(object):
     def start(self):
         """Start process individually, otherwise register on server process"""
 
-        asyncio.ensure_future(self.run())
+        run_task = asyncio.ensure_future(self.run())
         try:
             self.logger.info("{0} Async Client Loop Start...".format(self.id))
             self._loop.run_forever()
         except KeyboardInterrupt:
             self.logger.warning("KeyboardInterrupt.")
         self._loop.run_until_complete(asyncio.gather(self.cleanup()))
+        run_task.cancel()
         self._loop.close()
         self.logger.info("{0} Async Client Loop Stop!".format(self.id))
 
@@ -126,7 +127,6 @@ class BaseAsyncClient(object):
                 await self.on_DEFAULT(load, ws)
         except ValueError:
             self.logger.exception("Message is not valid JSON.")
-
 
     async def on_DEFAULT(self, msg, ws):
         pass
@@ -271,6 +271,9 @@ class PublisherAsyncClient(BaseAsyncClient):
 
         if ip is None:
             ip = get_ip()
+        if "publisher-" not in self.id:
+            self.logger.warning("ID does not contain publisher-")
+            raise ValueError
         super().__init__(id, port,
                          entrance_urls,
                          ip=ip,
@@ -446,11 +449,12 @@ class PublisherAsyncClient(BaseAsyncClient):
             return (None, None)
         keys = [k for k, v in self._peers_ws.items()]
         box = None
-        while True:
+        while len(keys):
             box = random.choice(keys)
             if self._peers_ws[box] is not None:
-                break
-        return (box, self._peers_ws[box])
+                return (box, self._peers_ws[box])
+            keys.remove(box)
+        return (None, None)
 
     async def cleanup(self):
         """ Called when the loop stop """

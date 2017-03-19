@@ -39,7 +39,7 @@ class BaseAsyncServer(object):
                  ip,
                  port,
                  loop=None,
-                 redis_address=("localhost", 6379),
+                 redis_address=("127.0.0.1", 6379),
                  redis_db=0,
                  redis_minsize=1,
                  redis_maxsize=5,
@@ -82,7 +82,6 @@ class BaseAsyncServer(object):
         self.app["conf"] = self.conf
         self.app['ID'] = self.id
         self.app["websockets"] = []
-        self.app["logger"] = self.logger
         self.setup_routes()
         self.setup_middlewares()
         self.app.on_startup.append(self.register_on_startup)
@@ -131,7 +130,7 @@ class EntranceAsyncServer(BaseAsyncServer):
                  ip=None,
                  port=None,
                  loop=None,
-                 redis_address=("localhost", 6379),
+                 redis_address=("127.0.0.1", 6379),
                  redis_db=0,
                  redis_minsize=1,
                  redis_maxsize=5,
@@ -139,7 +138,6 @@ class EntranceAsyncServer(BaseAsyncServer):
                  amount_of_boxes_per_request=20,
                  log_level=logging.DEBUG,
                  **kwargs):
-        self.logger = get_logger("Entrance", level=log_level)
         super().__init__(id,
                          ip=ip,
                          port=port,
@@ -152,6 +150,8 @@ class EntranceAsyncServer(BaseAsyncServer):
         if "entrance-" not in self.id:
             self.logger.warning("ID does not contain entrance-")
             raise ValueError
+        self.logger = get_logger("Entrance", level=log_level)
+        self.app["logger"] = self.logger
         self.conf["expire_box_time"] = expire_box_time
         self.conf["amount_of_boxes_per_request"] = amount_of_boxes_per_request
 
@@ -162,13 +162,8 @@ class EntranceAsyncServer(BaseAsyncServer):
         app["background_process"] = app.loop.create_task(self.background_process())
 
     async def register_on_cleanup(self, app):
-        """ """
-        for ws in app['websockets']:
-            ws.close()
-        self.rdp.close()
-        await self.rdp.wait_closed()
+        super().register_on_cleanup(app=app)
         self.app["background_process"].cancel()
-        self.rdp.close()
 
     async def background_process(self):
         """
@@ -210,7 +205,10 @@ class BoxAsyncServer(BaseAsyncServer):
                  log_level=logging.DEBUG,
                  base_directory="/tmp",
                  **kwargs):
-        self.logger = get_logger("Box-Server", level=log_level)
+        if "box-" not in self.id:
+            self.logger.warning("ID does not contain box-")
+            raise ValueError
+
         super().__init__(id,
                          ip=ip,
                          port=port,
@@ -221,6 +219,8 @@ class BoxAsyncServer(BaseAsyncServer):
                          redis_maxsize=redis_maxsize,
                          log_level=log_level,
                          **kwargs)
+        self.logger = get_logger("Box-Server", level=log_level)
+        self.app["logger"] = self.logger
         self.conf["base_directory"] = base_directory
 
     def setup_routes(self):
