@@ -1,25 +1,14 @@
 <?php
 require_once 'redis_db.php';
 require_once 'function.php';
-/*Get IP*/
-if (!empty($_SERVER['HTTP_CLIENT_IP']))
-{
-  $ip=$_SERVER['HTTP_CLIENT_IP'];
-}
-else if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
-{
-  $ip=$_SERVER['HTTP_X_FORWARDED_FOR'];
-}
-else
-{
-  $ip=$_SERVER['REMOTE_ADDR'];
-}
+
 
 if($_SESSION['redis'])
 {
 
   //var_dump($redis->sMembers "123");
-  echo ($redis->SCARD($_POST['id']));
+  echo $redis->SCARD("channel_id_{$_POST['id']}");
+  
 
 
 

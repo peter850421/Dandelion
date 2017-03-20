@@ -66,7 +66,7 @@ $datas = get_channel_list();
 								<?php //echo ' '."{$a_name['number']}"?>
 								<script src="http://code.jquery.com/jquery-latest.min.js"></script>
 								<script>
-								function get_number(channel_id){
+								function get_number_<?php echo $a_name['id'];?>(channel_id){
 								  $.ajax({
 								      type : "POST",
 								      url : "php/get_channel_number.php",
@@ -79,7 +79,7 @@ $datas = get_channel_list();
 								    }).done(function(data) {
 								      //成功的時候
 
-								      setTimeout(get_number, 2000);
+								      setTimeout(get_number_<?php echo $a_name['id'];?>, 2000);
 								      document.getElementById(<?php echo $a_name['id'];?>).innerText=data;
 								      //console.log(data);
 
@@ -92,7 +92,7 @@ $datas = get_channel_list();
 								    });
 								};
 								</script>
-								<script> get_number(<?php echo $a_name['id'];?>)</script>
+								<script> get_number_<?php echo $a_name['id'];?>(<?php echo $a_name['id'];?>)</script>
 
 							</small>
 						</span>
