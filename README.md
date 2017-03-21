@@ -144,11 +144,27 @@ connections. Feel free to folk to make this project better.
 - {ID}:OWN_INFO (hash)
 
 ```
-location /dandelion {
-        proxy_pass https://127.0.0.1:8080/dandelion;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_read_timeout 1d;
+server {
+        listen 8000;
+
+
+        location / {
+            root /tmp;
+            allow all;
+            add_header Cache-Control no-cache;
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type';
+
+        }
+
+        location /dandelion {
+            proxy_pass https://127.0.0.1:8080/dandelion;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_read_timeout 1d;
+        }
 }
 ```
 

@@ -1,5 +1,4 @@
 import os
-import random
 import time
 import subprocess
 import logging

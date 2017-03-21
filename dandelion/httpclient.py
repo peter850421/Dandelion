@@ -95,10 +95,11 @@ class BaseAsyncClient(object):
         """
         try:
             async with self.session.ws_connect(url) as ws:
+                self.logger.info("Connect to %s " % url)
                 self._entrance_ws[url] = ws
                 await self.send_entrance(ws)
                 async for msg in ws:
-                    self.logger.debug(" RECEIVE MSG %s, FROM URL: %s" % (str(msg), url))
+                    self.logger.debug(" RECEIVE MSG %s, FROM URL: %s." % (str(msg), url))
                     if msg.type == WSMsgType.TEXT:
                         await self._dispatch(msg, ws)
                         break
@@ -107,9 +108,9 @@ class BaseAsyncClient(object):
                     elif msg.type == WSMsgType.ERROR:
                         break
         except (aiohttp.WSServerHandshakeError, aiohttp.errors.ClientOSError):
-            self.logger.exception("Connection Failure to %s" % url, exc_info=False)
+            self.logger.exception("Unable to connect to %s." % url, exc_info=False)
         except:
-            self.logger.exception("Fail in connect_entrance")
+            self.logger.exception("Fail in connect_entrance.")
         finally:
             self._entrance_ws.pop(url, None)
 
@@ -377,7 +378,7 @@ class PublisherAsyncClient(BaseAsyncClient):
                     elif msg.type == WSMsgType.ERROR:
                         break
         except (aiohttp.WSServerHandshakeError, aiohttp.errors.ClientOSError):
-            self.logger.exception("Connection Failure to %s" % url, exc_info=False)
+            self.logger.exception("Unable to connect to %s." % url, exc_info=False)
         except:
             self.logger.exception("Fail in connect_box %s" % box_id, exc_info=False)
         finally:
