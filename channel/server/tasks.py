@@ -131,8 +131,8 @@ def m3u8_trans(pathname, publisher_id):
         line = infile.readline()
     infile.close()
     outfile.truncate()
-    outfile.flush()
     outfile.close()
+    outfile.flush()
     for line in lines_zadd:
         rdb.zadd(redis_ts_sorted_set, int(time.time()) + m3u8_time_waiting,
                  stream_name + "/" + line.rsplit('\n', 1)[0])
@@ -173,8 +173,8 @@ def update_M3U8(ts_file, publisher_id):
     for i in st:
         outfile.write(i)
     outfile.truncate()
-    outfile.flush()
     outfile.close()
+    outfile.flush()
     logging.info("Update %s" % ts)
     rdb = redis.StrictRedis(host=REDIS_HOST, decode_responses=True)
     rdb.zrem(redis_ts_sorted_set, ts_file)
