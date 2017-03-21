@@ -3,7 +3,7 @@ import configfile
 import redis
 import asyncore
 import multiprocessing
-from server.tasks import logmsg, m3u8_trans, mother_m3u8_modify,check_ts_sorted_set
+from server.tasks import logmsg, m3u8_trans, mother_m3u8_modify,check_ts_sorted_set,recycle_expired_channel
 from dandelion.httpclient import FileManager
 
 
