@@ -121,7 +121,6 @@ def m3u8_trans(pathname, publisher_id):
             except KeyError:
                 pass
             if box_ip is not None and box_port is not None:
-                lines_zadd.append(line)
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
             else:
@@ -133,6 +132,7 @@ def m3u8_trans(pathname, publisher_id):
         line = infile.readline()
     infile.close()
     outfile.truncate()
+    outfile.flush()
     outfile.close()
     for line in lines_zadd:
         rdb.zadd(redis_ts_sorted_set, int(time.time()) + m3u8_time_waiting,
@@ -177,8 +177,8 @@ def update_M3U8(ts_file, publisher_id):
     outfile.flush()
     outfile.close()
     logging.info("Update %s" % ts)
-    #rdb = redis.StrictRedis(host=REDIS_HOST, decode_responses=True)
-    #rdb.zrem(redis_ts_sorted_set, ts_file)
+    rdb = redis.StrictRedis(host=REDIS_HOST, decode_responses=True)
+    rdb.zrem(redis_ts_sorted_set, ts_file)
 
 
 ### 檢查REDIS_TS_SORTED_SET 若ts對應box_id有值 則修改outfile_m3u8
