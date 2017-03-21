@@ -400,12 +400,12 @@ class PublisherAsyncClient(BaseAsyncClient):
         while True:
             msg = "Success"
             with await self.redis_pool as rdb:
-                task = (await rdb.blpop(self._rk("FILE", "FILES_SENDING_QUEUE")))[1]
-                task = json.loads(task)
+                task_json = (await rdb.blpop(self._rk("FILE", "FILES_SENDING_QUEUE")))[1]
+                task = json.loads(task_json)
                 file_path = task["FILE_PATH"]
                 box, ws = await self.pick_box(rdb, timeout=1)
                 if ws is None:
-                    await rdb.lpush(self._rk("FILE", "FILES_SENDING_QUEUE"), file_path)
+                    await rdb.lpush(self._rk("FILE", "FILES_SENDING_QUEUE"), task_json)
                     self.logger.warning("No available box to send file.")
                     await asyncio.sleep(3)
                     continue
