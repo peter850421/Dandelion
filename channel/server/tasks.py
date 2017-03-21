@@ -154,7 +154,7 @@ def update_M3U8(ts_file, publisher_id):
     if box_ip is None or box_port is None:
         return
     try:
-        outfile = open(pathname, "r+")
+        outfile = open(pathname, "r")
     except IOError:
         logwarning('IOError in m3u8_trans() Pathname: %s.' % pathname)
         return
@@ -169,10 +169,10 @@ def update_M3U8(ts_file, publisher_id):
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
         st.append(line)
         line = outfile.readline()
-    outfile.seek(0)
+    outfile.close()
+    outfile = open(pathname, "w")
     for i in st:
         outfile.write(i)
-    outfile.truncate()
     outfile.flush()
     outfile.close()
     logging.info("Update %s" % ts)
