@@ -501,7 +501,7 @@ class FileManager:
         d.update(kwargs)
         try:
             task = json.dumps(d)
-            self.rdb.rpush(task, file_path)
+            self.rdb.rpush(self._rk("FILE", "FILES_SENDING_QUEUE"), task)
         except TypeError:
             logging.exception("Item can't be serialized.")
 
