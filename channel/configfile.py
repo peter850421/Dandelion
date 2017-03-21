@@ -12,7 +12,7 @@ MEDIA_GET_DIR               = "hls/output/"
 BOX_MEDIA_WRITE_DIR         = "/tmp/hls/output"
 M3U8_WATCH_PATH             = M3U8_READ_DIR
 M3U8_MEDIA_AMOUNT           = 12
-M3U8_TIME_WAITING           = 1.0   #seconds (use float)
+M3U8_TIME_WAITING           = 10   #seconds (use float)
 
 ### ZMQ SETTINGS
 # PUB-SUB MainTaining boxes' connections
