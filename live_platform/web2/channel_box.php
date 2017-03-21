@@ -2,6 +2,8 @@
 require_once'php/live_stream_db.php';
 require_once'php/function.php';
 $channel = get_channel($_GET['i']);
+$client_id = get_client_id();
+include ('configfile.php')  ;
 ?>
 <!doctype html>
 <html>
@@ -64,7 +66,7 @@ $channel = get_channel($_GET['i']);
 								  if(Hls.isSupported()) {
 									var video = document.getElementById('video');
 									var hls = new Hls();
-									hls.loadSource(<?php echo "'http://140.115.153.211/hls/media/{$channel['username']}.m3u8'"?>);
+									hls.loadSource(<?php echo "'http://{$Server_IP}/hls/media/{$channel['username']}.m3u8'"?>);
 									hls.attachMedia(video);
 									hls.on(Hls.Events.MANIFEST_PARSED,function() {
 									  video.play();
@@ -112,7 +114,7 @@ $(document).on("ready",function worker(){
       data : {
 
         'id' : 	<?php echo $_GET['i'] ?>
-
+				,'client_id' : "<?php echo $client_id?>"
       },
       dataType : 'html'
     }).done(function(data) {

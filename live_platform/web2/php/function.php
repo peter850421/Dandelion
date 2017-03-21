@@ -1,5 +1,9 @@
 <?php
 @session_start();
+function get_client_id(){
+	$id=sha1(microtime(true).mt_rand(10000,99999)); //時間與亂數加密
+	return $id;
+}
 
 function get_channel_list()
 {

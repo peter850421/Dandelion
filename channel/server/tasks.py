@@ -131,6 +131,7 @@ def m3u8_trans(pathname, publisher_id):
         line = infile.readline()
     infile.close()
     outfile.truncate()
+    outfile.flush()
     outfile.close()
     for line in lines_zadd:
         rdb.zadd(redis_ts_sorted_set, int(time.time()) + m3u8_time_waiting,
@@ -192,3 +193,20 @@ def check_ts_sorted_set(publisher_id):
             else:
                 update_M3U8.delay(ts, publisher_id)
         time.sleep(0.001)
+def recycle_expired_channel():
+    logmsg ("Recycle Channel Process Start...")
+    rdb = redis.StrictRedis(host=REDIS_HOST, decode_responses=True)
+    while True:
+        channel_set= rdb.zrangebyscore("channel_expire_set",0,int(time.time()))
+        ### member = $channel_id_$id-$ip_$SHA1(client_id)
+        for channel in channel_set:
+            try:
+                character=channel.find("-")
+                rdb.srem(channel[0:character],channel[character+1:])
+                logmsg ("Set:"+channel[0:character])
+                rdb.zrem("channel_expire_set",channel)
+                logmsg ("member:"+channel[character+1:]+"---Has Been Removed...")
+
+            except Exception as e:
+                logwarning('Expiring Error')
+        time.sleep(2)

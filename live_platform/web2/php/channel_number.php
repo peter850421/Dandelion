@@ -14,15 +14,15 @@ else
 {
   $ip=$_SERVER['REMOTE_ADDR'];
 }
-
+### member = $channel_id_$id-$ip_$SHA1(client_id)
 if($_SESSION['redis'])
 {
-  $redis->SADD($_POST['id'],"{$ip}");
+  $redis->SADD("channel_id_{$_POST['id']}","{$ip}_{$_POST['client_id']}");
   //set 3 sec expiring
-  $redis->setTimeout($_POST['id'],3);
-
+  //$redis->setTimeout($_POST['id'],3);
+  $redis->ZADD("channel_expire_set",time()+3,"channel_id_{$_POST['id']}-{$ip}_{$_POST['client_id']}");
   //var_dump($redis->sMembers "123");
-  echo ($redis->SCARD($_POST['id']));
+  echo $redis->SCARD("channel_id_{$_POST['id']}");
 
 
 

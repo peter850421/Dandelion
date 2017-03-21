@@ -3,7 +3,7 @@ import configfile
 import redis
 import asyncore
 import multiprocessing
-from server.tasks import logmsg, m3u8_trans, mother_m3u8_modify,check_ts_sorted_set
+from server.tasks import logmsg, m3u8_trans, mother_m3u8_modify,check_ts_sorted_set,recycle_expired_channel
 from dandelion.httpclient import FileManager
 
 
@@ -43,10 +43,14 @@ if __name__ == '__main__':
     notifier   = pyinotify.AsyncNotifier(wm, handler)
     wm.add_watch(configfile.M3U8_WATCH_PATH, mask, rec=True, auto_add=True)
     print("Notifier start loop...")
+    exp_chan_process = multiprocessing.Process(target=recycle_expired_channel, args=())
     check_ts_process = multiprocessing.Process(target=check_ts_sorted_set, args=(publisher_id,))
     try:
+        exp_chan_process.start()
         check_ts_process.start()
         asyncore.loop()
     except KeyboardInterrupt:
+        exp_chan_process.terminate()
+        exp_chan_process.join
         check_ts_process.terminate()
         check_ts_process.join()
