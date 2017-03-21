@@ -194,8 +194,9 @@ def check_ts_sorted_set(publisher_id):
             else:
                 update_M3U8.delay(ts, publisher_id)
         time.sleep(0.001)
-def recycle_expired_channel(rdb):
+def recycle_expired_channel():
     logmsg ("Recycle Channel Process Start...")
+    rdb = redis.StrictRedis(host=REDIS_HOST, decode_responses=True)
     while True:
         channel_set= rdb.zrangebyscore("channel_expire_set",0,int(time.time()))
         ### member = $channel_id_$id-$ip_$SHA1(client_id)
