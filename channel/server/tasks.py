@@ -114,11 +114,9 @@ def m3u8_trans(pathname, publisher_id):
         if '.ts' == line.rstrip()[-3:]:
             answer = m.ask(path+'/'+line)
             box_ip, box_port = (None, None)
-            try:
-                box_ip = answer['IP']
-                box_port = answer['PORT']
-            except KeyError:
-                pass
+            box_ip = answer['IP']
+            box_port = answer['PORT']
+            
             if box_ip is not None and box_port is not None:
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
