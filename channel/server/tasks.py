@@ -114,7 +114,7 @@ def m3u8_trans(pathname, publisher_id):
         if '.ts' == line.rstrip()[-3:]:
             box_ip = None
             box_port = None
-            answer = m.ask(path+'/'+line)
+            answer = m.ask(path+'/'+line.rsplit('\n', 1)[0])
             try:
                 box_ip=answer['IP']
                 box_port=answer['PORT']
