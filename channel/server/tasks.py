@@ -81,6 +81,7 @@ def m3u8_trans(pathname, publisher_id):
     -Read line from child m3u8
     """
     logmsg("M3U8_TRANS PATHNAME: %s"%(pathname))
+    time.sleep(1)
     # Import from configfile
 
     # Connect to redis
