@@ -112,7 +112,7 @@ def m3u8_trans(pathname, publisher_id):
     lines_zadd = []
     while line:
         if '.ts' == line.rstrip()[-3:]:
-            answer = m.ask(path+line)
+            answer = m.ask(path+'/'+line)
             box_ip, box_port = (None, None)
             try:
                 box_ip = answer['IP']
