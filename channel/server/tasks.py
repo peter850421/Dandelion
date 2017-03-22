@@ -115,7 +115,7 @@ def m3u8_trans(pathname, publisher_id):
             box_ip = None
             box_port = None
             answer = m.ask(path+'/'+line)
-             try:
+            try:
                 box_ip=answer['IP']
                 box_port=answer['PORT']
             except KeyError:
