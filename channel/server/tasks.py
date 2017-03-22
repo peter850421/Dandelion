@@ -115,8 +115,11 @@ def m3u8_trans(pathname, publisher_id):
             box_ip = None
             box_port = None
             answer = m.ask(path+'/'+line)
-            box_ip = answer['IP']
-            box_port = answer['PORT']
+             try:
+                box_ip=answer['IP']
+                box_port=answer['PORT']
+            except KeyError:
+                logging.exception("Can't find IP or PORT in answer.", exc_info=False)
             
             if box_ip is not None and box_port is not None:
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
