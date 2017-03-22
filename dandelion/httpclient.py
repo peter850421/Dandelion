@@ -427,6 +427,7 @@ class PublisherAsyncClient(BaseAsyncClient):
                 "ID": box,
                 "MSG": msg,
             }
+            save_dict.update(task)
             with await self.redis_pool as rdb:
                 self.logger.debug("Save SENT FILE %s" % (self._rk("FILE", "PROCESSED_FILES", file_path)))
                 await rdb.hmset_dict(self._rk("FILE", "PROCESSED_FILES", file_path), save_dict)
