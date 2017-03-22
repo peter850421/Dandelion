@@ -246,7 +246,7 @@ class BoxAsyncClient(BaseAsyncClient):
                                                    min=0,
                                                    max=int(time.time()))
             if len(expire_files):
-                await rdb.zrem(self._rk("EXPIRE_FILES"), expire_files)
+                await rdb.zrem(self._rk("EXPIRE_FILES"), *expire_files)
             else:
                 return
         for file in expire_files:
