@@ -228,7 +228,7 @@ class BoxAsyncClient(BaseAsyncClient):
     async def update_self_exchange(self):
         """ Update Own Exchange Info """
         ip = self.ip
-        if not ip:
+        if ip is None:
             ip = await self._loop.run_in_executor(None, get_ip)
         connect_url = URLWrapper("http://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
         ex_dict = {"ID": self.id,
@@ -239,6 +239,7 @@ class BoxAsyncClient(BaseAsyncClient):
                    "CONNECT_WS": connect_url}
         with await self.rdp as rdb:
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
+        self.logger.debug("UPDATE SELF EXCHANGE %s" % str(ex_dict))
 
     async def delete_expire_files(self):
         with await self.rdp as rdb:
