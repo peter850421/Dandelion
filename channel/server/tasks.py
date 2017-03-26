@@ -81,6 +81,7 @@ def m3u8_trans(pathname, publisher_id):
     -Read line from child m3u8
     """
     logmsg("M3U8_TRANS PATHNAME: %s"%(pathname))
+    time.sleep(1)
     # Import from configfile
 
     # Connect to redis
@@ -112,13 +113,15 @@ def m3u8_trans(pathname, publisher_id):
     lines_zadd = []
     while line:
         if '.ts' == line.rstrip()[-3:]:
-            answer = m.ask(path+'/'+line)
-            box_ip, box_port = (None, None)
+            box_ip = None
+            box_port = None
+            answer = m.ask(path+'/'+line.rsplit('\n', 1)[0])
             try:
-                box_ip = answer['IP']
-                box_port = answer['PORT']
+                box_ip=answer['IP']
+                box_port=answer['PORT']
             except KeyError:
-                pass
+                logging.exception("Can't find IP or PORT in answer.", exc_info=False)
+            
             if box_ip is not None and box_port is not None:
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
