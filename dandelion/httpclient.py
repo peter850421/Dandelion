@@ -10,6 +10,7 @@ import aiohttp
 import uvloop
 import ssl
 import redis
+from systeminfo import CPU_loading_info, Memory_info, Loadaverage_info, Disk_info, CPU_number
 from .utils import RedisKeyWrapper, URLWrapper
 from .utils import get_key_tail as gktail
 from .utils import wrap_bytes_headers as wrapbh
@@ -236,6 +237,11 @@ class BoxAsyncClient(BaseAsyncClient):
                    "PORT": self.conf["proxy_port"],
                    "TYPE": "BOX",
                    "COMMAND": "EXCHANGE",
+                   "CPU_NUM" : CPU_number(),
+                   "CPU_LOADING" : CPU_loading_info(),
+                   "LOADING_AVG" : Loadaverage_info(),
+                   "Memory" : Memory_info(),
+                   "DISK" : Disk_info(),
                    "CONNECT_WS": connect_url}
         with await self.rdp as rdb:
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
