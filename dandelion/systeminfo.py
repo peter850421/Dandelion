@@ -22,7 +22,7 @@ def Disk_info():
     disk_info   ={"total":total,"avail":avail}
     return(disk_info)
 def CPU_number():
-    cpu_info= subprocess.check_output("lscpu | grep MHz",shell=True)
+    cpu_info= subprocess.check_output("lscpu | grep MHz",shell=True).decode("utf-8").rsplit('\n', 1)[0]
     return(cpu_info)
 
 
