@@ -22,32 +22,7 @@ def Disk_info():
     disk_info   ={"total":total,"avail":avail}
     return(disk_info)
 def CPU_number():
-    ''' Return the information in /proc/CPUinfo
-    as a dictionary in the following format:
-    CPU_info['proc0']={...}
-    CPU_info['proc1']={...}
-    '''
-    CPUinfo=OrderedDict()
-    procinfo=OrderedDict()
-
-    nprocs = 0
-    with open('/proc/cpuinfo') as f:
-        for line in f:
-            if not line.strip():
-                # end of one processor
-                CPUinfo['proc%s' % nprocs] = procinfo
-                nprocs=nprocs+1
-                # Reset
-                procinfo=OrderedDict()
-            else:
-                if len(line.split(':')) == 2:
-                    procinfo[line.split(':')[0].strip()] = line.split(':')[1].strip()
-                else:
-                    procinfo[line.split(':')[0].strip()] = ''
-
-    cpu_info=[]
-    for processor in CPUinfo.keys():
-        cpu_info.append(CPUinfo[processor]['model name'])
+    cpu_info= subprocess.check_output("lscpu | grep MHz",shell=True)
     return(cpu_info)
 
 
