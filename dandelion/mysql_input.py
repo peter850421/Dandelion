@@ -7,14 +7,14 @@ def mysql_input(IP,PORT,BOX_ID,CPU_NUM,CPU_LOADING,LOADING_AVG,Memory,DISK):
     sql = "INSERT INTO `system`(`IP`, `PORT`, `BOX_ID`, `CPU_NUM`,\
      `CPU_LOADING`, `LOADING_AVG`, `Memory`, `DISK`, `time`) \
      VALUES ({IP}, {PORT}, {BOX_ID}, {CPU_NUM}\
-     {CPU_LOADING}, {LOADING_AVG}, {Memory}, {DISK}\'{0}\')".format(IP=IP,PORT=PORT,
+     {CPU_LOADING}, {LOADING_AVG}, {Memory}, {DISK}\'{time0}\')".format(IP=IP,PORT=PORT,
                                                                     BOX_ID=BOX_ID,
                                                                     CPU_NUM=CPU_NUM,
                                                                     CPU_LOADING=CPU_LOADING,
                                                                     LOADING_AVG=LOADING_AVG,
                                                                     Memory=Memory,
                                                                     DISK=DISK,
-                                                                    time0)
+                                                                    time0=time0)
     try:
         cursor.execute(sql)
         mdb.commit()
