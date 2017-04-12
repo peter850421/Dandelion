@@ -6,13 +6,13 @@ import sys,os,time
 import subprocess
 
 def CPU_loading_info():
-    cpu         = subprocess.check_output("top -b -n1|grep -E Cpu",shell=True).decode("utf-8").rsplit('\n', 1)[0]
+    cpu         = subprocess.check_output("top -b -n1|grep -E Cpu",shell=True).decode("utf-8").rsplit('\n', 1)[0].replace(' ','')
     return(cpu)
 def Memory_info():
-    mem         = subprocess.check_output("top -b -n1|grep -E Mem",shell=True).decode("utf-8").rsplit('\n', 1)[0]
+    mem         = subprocess.check_output("top -b -n1|grep -E Mem",shell=True).decode("utf-8").rsplit('\n', 1)[0].replace(' ','')
     return(mem)
 def Loadaverage_info():
-    loading     = subprocess.check_output("top -b -n1|grep -E 'load average'",shell=True).decode('unicode-escape').rsplit('\n', 1)[0].split('\f', 1)[0]
+    loading     = subprocess.check_output("top -b -n1|grep -E 'load average'",shell=True).decode('unicode-escape').rsplit('\n', 1)[0].split('\f', 1)[0].replace(' ','')
     a           = loading.find("load")
     return(loading[a:])
 def Disk_info():
@@ -22,7 +22,7 @@ def Disk_info():
     disk_info   ={"total":total,"avail":avail}
     return(disk_info)
 def CPU_number():
-    cpu_info= subprocess.check_output("lscpu | grep MHz",shell=True).decode("utf-8").rsplit('\n', 1)[0]
+    cpu_info= subprocess.check_output("lscpu | grep MHz",shell=True).decode("utf-8").rsplit('\n', 1)[0].replace(' ','')
     return(cpu_info)
 
 
