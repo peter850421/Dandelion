@@ -10,7 +10,7 @@ import aiohttp
 import uvloop
 import ssl
 import redis
-from systeminfo import CPU_loading_info, Memory_info, Loadaverage_info, Disk_info, CPU_number
+from .systeminfo import CPU_loading_info, Memory_info, Loadaverage_info, Disk_info, CPU_number
 from .utils import RedisKeyWrapper, URLWrapper
 from .utils import get_key_tail as gktail
 from .utils import wrap_bytes_headers as wrapbh
@@ -232,17 +232,19 @@ class BoxAsyncClient(BaseAsyncClient):
         if ip is None:
             ip = await self._loop.run_in_executor(None, get_ip)
         connect_url = URLWrapper("http://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
+        #print(''.join(CPU_number()))
         ex_dict = {"ID": self.id,
                    "IP": ip,
                    "PORT": self.conf["proxy_port"],
                    "TYPE": "BOX",
                    "COMMAND": "EXCHANGE",
-                   "CPU_NUM" : CPU_number(),
+                   "CONNECT_WS": connect_url,
+                   "CPU_NUM" : '{0}'.format(CPU_number()),
                    "CPU_LOADING" : CPU_loading_info(),
                    "LOADING_AVG" : Loadaverage_info(),
                    "Memory" : Memory_info(),
-                   "DISK" : Disk_info(),
-                   "CONNECT_WS": connect_url}
+                   "DISK" : "{0}".format(Disk_info())}
+
         with await self.rdp as rdb:
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
         self.logger.debug("UPDATE SELF EXCHANGE %s" % str(ex_dict))
