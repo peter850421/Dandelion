@@ -4,7 +4,7 @@ import subprocess
 from aiohttp import web, WSMsgType
 from .utils import RedisKeyWrapper
 from .utils import filter_bytes_headers
-
+from .mysql_input import mysql_input
 
 async def index(request):
     request.app["logger"].debug("trigger index!!")
@@ -169,6 +169,8 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
                 await self.response_to_box("Accept", ws, rdb)
                 await self.update_box(msg, rdb)
                 self.logger.info("Receive Connection from %s on EXCHANGE" % self.connect_id)
+                mysql_input(msg['IP'],msg['PORT'],msg['ID'],msg['CPU_NUM'],msg['CPU_LOADING'],msg['LOADING_AVG'],msg['Memory'],msg['DISK'])
+                self.logger.info("Update mysql from %s on EXCHANGE" % self.connect_id)
         return True
 
     async def response_to_box(self, response_msg, ws, rdb):
