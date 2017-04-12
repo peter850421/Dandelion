@@ -6,8 +6,8 @@ def mysql_input(IP,PORT,BOX_ID,CPU_NUM,CPU_LOADING,LOADING_AVG,Memory,DISK):
     Time0 = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     sql = "INSERT INTO `system`(`IP`, `PORT`, `BOX_ID`, `CPU_NUM`,\
      `CPU_LOADING`, `LOADING_AVG`, `Memory`, `DISK`, `time`) \
-     VALUES ({ip}, {port}, {box_id}, {cpu_num}\
-     {cpu_loading}, {loading_avg}, {memory}, {disk}\'{time0}\')".format(ip=IP,port=PORT,
+     VALUES (\'{ip}\', \'{port}\', \'{box_id}\', \'{cpu_num}\'\
+     \'{cpu_loading}\', \'{loading_avg}\', \'{memory}\', \'{disk}\', \'{time0}\')".format(ip=IP,port=PORT,
                                                                     box_id=BOX_ID,
                                                                     cpu_num=CPU_NUM,
                                                                     cpu_loading=CPU_LOADING,
