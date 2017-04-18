@@ -25,21 +25,21 @@ Zeromq has been removed.
 ![Screenshot](screenshot.png)
 
 ## Before Start
-## Make sure that python's version is higher than 3.5 and run command below
+#### Make sure that python's version is higher than 3.5 and run command below
 ```
 sudo pip3 install -r requirements
 python3 setup.py install
 ```
 
 ## Get started
-### Decide which file to run depend on what your computer should be among three characters (Entrance server, box and publisher)
+#### Decide which file to run depend on what your computer should be among three characters (Entrance server, box and publisher)
 ```
 python3 run_box.py
 python3 run_entrance.py
 python3 run_publisher.py
 ```
-### We recommend to use linux screen to run the program for convenience. However, you are able to run the program ny
-### adding & at the end of the command above . You could inspect the program by dandelion.log, which will be created automatically
+#### We recommend to use linux screen to run the program for convenience. However, you are able to run the program ny
+#### adding & at the end of the command above . You could inspect the program by dandelion.log, which will be created automatically
 ```
 tail -f dandelion.log
 ```
