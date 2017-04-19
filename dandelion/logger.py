@@ -1,5 +1,6 @@
 import logging
 from colorlog import ColoredFormatter
+from logging.handlers import RotatingFileHandler
 
 COLOR_FORMAT = "%(log_color)s[%(levelname)s]%(reset)s %(purple)s%(name)s %(processName)s %(reset)s %(bold_blue)s%(funcName)s%(reset)s %(green)s%(asctime)s%(reset)s \n%(message_log_color)s%(message)s"
 
@@ -31,12 +32,16 @@ def get_logger(name, level=logging.DEBUG):
     )
     _handler = logging.StreamHandler()
     _handler.setFormatter(_formatter)
-    logging.basicConfig(filename='dandelion.log', 
-                        level=level, 
-                        format=FORMAT, 
-                        datefmt=DATEFMT)
+
+    handler = RotatingFileHandler("dandelion.log",
+                                   maxBytes=1024*1024,
+                                   backupCount=1)
+    log_formatter = logging.Formatter(FORMAT, DATEFMT)
+    handler.setFormatter(log_formatter)
+
     logger = logging.getLogger(name)
     logger.addHandler(_handler)
+    logger.addHandler(handler)
     logger.setLevel(level=level)
     return logger
 
