@@ -239,7 +239,7 @@ class BoxAsyncClient(BaseAsyncClient):
                    "TYPE"          : "BOX",
                    "COMMAND"       : "EXCHANGE",
                    "CONNECT_WS"    : connect_url,
-                   "CPU-HZ"        : '{0}'.format(CPU_HZ()),
+                   "CPU-HZ"        : '{0}'.format(CPU_Hz()),
                    "CPU-NUM"       : '{0}'.format(CPU_number()),
                    "CPU-USR"       : CPU_loading_info()[0],
                    "CPU-SYS"       : CPU_loading_info()[1],
