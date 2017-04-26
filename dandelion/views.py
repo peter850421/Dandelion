@@ -172,7 +172,7 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
                 mysql_input(msg['ID'],
                             msg['IP'],
                             msg['PORT'],
-                            msg['CPU_Hz'],
+                            msg['CPU-HZ'],
                             msg['CPU_NUM'],
                             msg['CPU-USR'],
                             msg['CPU-SYS'],
