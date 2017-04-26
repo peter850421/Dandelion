@@ -8,7 +8,7 @@ def mysql_input(BOX_ID,IP,PORT,CPU_HZ,CPU_NUM,CPU_USR,CPU_SYS,CPU_NIC,
     Time0 = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     sql = "INSERT INTO `box_info`(`box-id`, `ip`, `port`, `cpu-Hz`, `cpu-num`, `cpu-usr`, \
      `cpu-sys`, `cpu-nic`, `cpu-idle`, `cpu-io`, `cpu-irq`, `cpu-sirq`, `loadavg-1`, `loadavg-5`, \
-     `loadavg-15`, `mem-total`, `mem-avail`, `disk-total`, `disk-avail`) \
+     `loadavg-15`, `mem-total`, `mem-avail`, `disk-total`, `disk-avail`,`time`) \
      VALUES (\"{box_id}\", \"{ip}\", \"{port}\", \"{cpu_Hz}\", \"{cpu_num}\", \"{cpu_usr}\", \
      \"{cpu_sys}\", \"{cpu_nic}\", \"{cpu_idle}\", \"{cpu_io}\", \"{cpu_irq}\", \"{cpu_sirq}\", \"{loadavg_1}\", \"{loadavg_5}\", \
      \"{loadavg_15}\", \"{mem_total}\", \"{mem_avail}\", \"{disk_total}\", \"{disk_avail}\", \"{time0}\")".format(box_id=BOX_ID,
@@ -48,6 +48,7 @@ def mysql_update_box(BOX_ID,IP,PORT):
     box_id=BOX_ID,ip=IP,port=PORT,time0=Time0)
     updatesql="UPDATE `box` SET `ip`=\"{ip}\",`port`=\"{port}\",`time`=\"{time0}\" WHERE `box-id`= \"{box_id}\" ".format(
     box_id=BOX_ID,ip=IP,port=PORT,time0=Time0)
+    data=[]
     try:
         cursor.execute(selectsql)
         data=cursor.fetchall()
@@ -65,4 +66,4 @@ def mysql_update_box(BOX_ID,IP,PORT):
             mdb.commit()
         except:
             print ("Error: unable to update box data")
-    db.close()
+    mdb.close()
