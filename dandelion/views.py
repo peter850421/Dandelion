@@ -173,7 +173,7 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
                             msg['IP'],
                             msg['PORT'],
                             msg['CPU-HZ'],
-                            msg['CPU_NUM'],
+                            msg['CPU-NUM'],
                             msg['CPU-USR'],
                             msg['CPU-SYS'],
                             msg['CPU-NIC'],
