@@ -43,8 +43,8 @@ def mysql_update_box(BOX_ID,IP,PORT):
     mdb = pymysql.connect("localhost","root","elnj4j;3xj4","live_stream_db" )
     cursor = mdb.cursor()
     Time0 = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    selectsql="SELECT  `box-id` FROM `box` WHERE `box-id`=BOX_ID"
-    insertsql="INSERT INTO `box`(`id`, `box-id`, `ip`, `port`, `time`) VALUES (\"{box_id}\",\"{ip}\",\"{port}\",\"{time0}\")".format(
+    selectsql="SELECT  `box-id` FROM `box` WHERE `box-id`=\"{box_id}\"".format(box_id=BOX_ID)
+    insertsql="INSERT INTO `box`(`box-id`, `ip`, `port`, `time`) VALUES (\"{box_id}\",\"{ip}\",\"{port}\",\"{time0}\")".format(
     box_id=BOX_ID,ip=IP,port=PORT,time0=Time0)
     updatesql="UPDATE `box` SET `ip`=\"{ip}\",`port`=\"{port}\",`time`=\"{time0}\" WHERE `box-id`= \"{box_id}\" ".format(
     box_id=BOX_ID,ip=IP,port=PORT,time0=Time0)
