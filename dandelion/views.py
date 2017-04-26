@@ -4,7 +4,7 @@ import subprocess
 from aiohttp import web, WSMsgType
 from .utils import RedisKeyWrapper
 from .utils import filter_bytes_headers
-from .mysql_input import mysql_input
+from .mysql_input import mysql_input,mysql_update_box
 
 async def index(request):
     request.app["logger"].debug("trigger index!!")
@@ -169,8 +169,31 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
                 await self.response_to_box("Accept", ws, rdb)
                 await self.update_box(msg, rdb)
                 self.logger.info("Receive Connection from %s on EXCHANGE" % self.connect_id)
-                mysql_input(msg['IP'],msg['PORT'],msg['ID'],msg['CPU_NUM'],msg['CPU_LOADING'],msg['LOADING_AVG'],msg['Memory'],msg['DISK'])
-                self.logger.info("Update mysql from %s on EXCHANGE" % self.connect_id)
+                mysql_input(msg['ID'],
+                            msg['IP'],
+                            msg['PORT'],
+                            msg['CPU_HZ'],
+                            msg['CPU_NUM'],
+                            msg['CPU-USR'],
+                            msg['CPU-SYS'],
+                            msg['CPU-NIC'],
+                            msg['CPU-IDLE'],
+                            msg['CPU-IO'],
+                            msg['CPU-IRQ'],
+                            msg['CPU-SIRQ'],
+                            msg['LOADAVG-1'],
+                            msg['LOADAVG-5'],
+                            msg['LOADAVG-15'],
+                            msg['MEM-TOTAL'],
+                            msg['MEM-AVAIL'],
+                            msg['DISK-TOTAL'],
+                            msg['DISK-AVAIL'])
+
+                self.logger.info("Update box_info from %s on EXCHANGE" % self.connect_id)
+                mysql_update_box(msg['ID'],
+                                 msg['IP'],
+                                 msg['PORT'])
+                self.logger.info("Update box from %s on EXCHANGE" % self.connect_id)
         return True
 
     async def response_to_box(self, response_msg, ws, rdb):
