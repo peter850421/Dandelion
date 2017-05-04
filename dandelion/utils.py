@@ -110,5 +110,7 @@ def get_ip():
                 return ip
         except requests.exceptions.RequestException as e:
             pass
+        except:
+            pass
     return ip
 

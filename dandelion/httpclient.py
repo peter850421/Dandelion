@@ -228,11 +228,12 @@ class BoxAsyncClient(BaseAsyncClient):
 
     async def update_self_exchange(self):
         """ Update Own Exchange Info """
-        ip = self.ip
-        if ip is None:
-            ip = await self._loop.run_in_executor(None, get_ip)
+        ip = await self._loop.run_in_executor(None, get_ip)
         connect_url = URLWrapper("http://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
-        #print(''.join(CPU_number()))
+        CPU = CPU_loading_info()
+        Load = Loadaverage_info()
+        Memory = Memory_info()
+        Disk = Disk_info()
         ex_dict = {"ID"            : self.id,
                    "IP"            : ip,
                    "PORT"          : self.conf["proxy_port"],
@@ -241,20 +242,20 @@ class BoxAsyncClient(BaseAsyncClient):
                    "CONNECT_WS"    : connect_url,
                    "CPU-HZ"        : '{0}'.format(CPU_Hz()),
                    "CPU-NUM"       : '{0}'.format(CPU_number()),
-                   "CPU-USR"       : CPU_loading_info()[0],
-                   "CPU-SYS"       : CPU_loading_info()[1],
-                   "CPU-NIC"       : CPU_loading_info()[2],
-                   "CPU-IDLE"      : CPU_loading_info()[3],
-                   "CPU-IO"        : CPU_loading_info()[4],
-                   "CPU-IRQ"       : CPU_loading_info()[5],
-                   "CPU-SIRQ"      : CPU_loading_info()[6],
-                   "LOADAVG-1"     : Loadaverage_info()[0],
-                   "LOADAVG-5"     : Loadaverage_info()[1],
-                   "LOADAVG-15"    : Loadaverage_info()[2],
-                   "MEM-TOTAL"     : Memory_info()[0],
-                   "MEM-AVAIL"     : Memory_info()[2],
-                   "DISK-TOTAL"    : Disk_info()[0],
-                   "DISK-AVAIL"    : Disk_info()[1]}
+                   "CPU-USR"       : CPU[0],
+                   "CPU-SYS"       : CPU[1],
+                   "CPU-NIC"       : CPU[2],
+                   "CPU-IDLE"      : CPU[3],
+                   "CPU-IO"        : CPU[4],
+                   "CPU-IRQ"       : CPU[5],
+                   "CPU-SIRQ"      : CPU[6],
+                   "LOADAVG-1"     : Load[0],
+                   "LOADAVG-5"     : Load[1],
+                   "LOADAVG-15"    : Load[2],
+                   "MEM-TOTAL"     : Memory[0],
+                   "MEM-AVAIL"     : Memory[2],
+                   "DISK-TOTAL"    : Disk[0],
+                   "DISK-AVAIL"    : Disk[1]}
 
         with await self.rdp as rdb:
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
