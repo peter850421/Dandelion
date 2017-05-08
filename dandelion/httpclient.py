@@ -360,10 +360,18 @@ class PublisherAsyncClient(BaseAsyncClient):
             box_list = await rdb.zrevrangebyscore(self._rk("BOX_RANKING"),
                                                   offset=0,
                                                   count=self.min_peers)
-            for box in box_list:
-                if box not in self._peers_ws.keys():
-                    self._peers_ws[box] = None
-                    asyncio.ensure_future(self.connect_box(box))
+            _peers_ws_keys = self._peers_ws.keys()
+            for box_id in box_list:
+                if box_id not in _peers_ws_keys:
+                    self._peers_ws[box_id] = {}
+                    asyncio.ensure_future(self.connect_box(box_id))
+
+            for box_id in _peers_ws_keys:
+                current_url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
+                if not self._peers_ws[box_id].get("url") == current_url:
+                    await self._peers_ws[box_id]['ws'].close()
+                    self._peers_ws.pop(box_id, None)
+                    await rdb.zrem(self._rk("BOX_RANKING"), box_id)
 
     def rank_boxes(self):
         """
@@ -383,12 +391,15 @@ class PublisherAsyncClient(BaseAsyncClient):
     async def connect_box(self, box_id):
         with await self.rdp as rdb:
             url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
-        if url is None:
-            return
         try:
+            if url is None:
+                raise ValueError("No available URL.")
             async with self.session.ws_connect(url) as ws:
                 await self.send_box(ws)
-                self._peers_ws[box_id] = ws
+                self._peers_ws[box_id] = {
+                    'ws': ws,
+                    'url': url,
+                }
                 self.logger.info("Connect to box %s" % box_id)
                 async for msg in ws:
                     self.logger.debug("RECEIVE MSG %s, FROM URL: %s" % (str(msg), url))
@@ -477,16 +488,16 @@ class PublisherAsyncClient(BaseAsyncClient):
         box = None
         while len(keys):
             box = random.choice(keys)
-            if self._peers_ws[box] is not None:
-                return (box, self._peers_ws[box])
+            if self._peers_ws[box]['ws'] is not None:
+                return (box, self._peers_ws[box]['ws'])
             keys.remove(box)
         return (None, None)
 
     async def cleanup(self):
         """ Called when the loop stop """
         await super().cleanup()
-        for ws in self._peers_ws.keys():
-            await self._peers_ws[ws].close()
+        for box_id in self._peers_ws.keys():
+            await self._peers_ws[box_id]['ws'].close()
 
 
 class FileManager:
