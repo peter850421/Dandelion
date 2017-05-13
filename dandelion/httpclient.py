@@ -200,8 +200,8 @@ class BoxAsyncClient(BaseAsyncClient):
         await self.update_self_exchange()
         asyncio.ensure_future(self.ping_entrances())
         while True:
-            await self.update_self_exchange()
-            await self.delete_expire_files()
+            asyncio.ensure_future(self.update_self_exchange())
+            asyncio.ensure_future(self.delete_expire_files())
             await asyncio.sleep(10)
 
     async def ping_entrances(self):
@@ -225,6 +225,7 @@ class BoxAsyncClient(BaseAsyncClient):
         with await self.rdp as rdb:
             self_exchange = await rdb.hgetall(self._rk("SELF_EXCHANGE"))
         self.ws_send(self_exchange, ws)
+        self.logger.info("SEND Msg to ENTRACE : %s" % str(self_exchange))
 
     async def update_self_exchange(self):
         """ Update Own Exchange Info """
@@ -322,7 +323,7 @@ class PublisherAsyncClient(BaseAsyncClient):
         asyncio.ensure_future(self.collecting())
         asyncio.ensure_future(self.publish())
         while True:
-            await self.maintain_peers()
+            asyncio.ensure_future(self.maintain_peers())
             await asyncio.sleep(3)
 
     async def collecting(self):
@@ -369,6 +370,7 @@ class PublisherAsyncClient(BaseAsyncClient):
                                                   offset=0,
                                                   count=self.min_peers)
             _peers_ws_keys = self._peers_ws.keys()
+            self.logger.info("---Maintain_Peers---")
             for box_id in box_list:
                 if box_id not in _peers_ws_keys:
                     self._peers_ws[box_id] = {}
@@ -394,6 +396,7 @@ class PublisherAsyncClient(BaseAsyncClient):
         boxes = rdb.keys(self._rk("SEARCH", "box*"))
         for box in boxes:
             box = gktail(box)
+            self.logger.info("BOX_RANKING BOX-%s"%(box) )
             rdb.zadd(self._rk("BOX_RANKING"), 0, box)
 
     async def connect_box(self, box_id):
