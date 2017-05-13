@@ -2,11 +2,11 @@
 
 ## Abstract
 Dandelion platform aims to optimize bandwidth usage by re-allocating idle bandwidth for other purposes, 
-such as live streaming.  The platform is consist of an "entrance server", "boxes", and "publishers". 
+such as live streaming.  The platform consists of an "entrance server", "boxes", and "publishers". 
 
 Boxes are microprocessors distributed among household that collect any unused bandwidth. The location and 
 system information of each box is recorded onto the entrance server's database. All recorded boxes periodically
-send pertinent information,such as measured bandwidth, available memory space and GEOIP info, etc., to the 
+send pertinent information, such as measured bandwidth, available memory space and GEOIP info, etc., to the 
 entrance server. If the entrance server does not receive any updates from a box after some given time, the 
 server will remove that box from its database.Each publisher keeps track of a list of box information from 
 the entrance server. Users access the collected bandwidth through publishers. Users first push the file to 
@@ -19,7 +19,7 @@ we might want to use udp or quic instead of http in exchanging information progr
 connections. Feel free to folk to make this project better.
 
 Update 2017/4/18
-Zeromq has been removed.
+Zeromq has been removed. Use weebsocket instead.
 
 ## Graph
 ![Screenshot](screenshot.png)

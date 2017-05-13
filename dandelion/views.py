@@ -168,33 +168,34 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
                     self.logger.exception("msg is not valid dictionary")
                 await self.response_to_box("Accept", ws, rdb)
                 await self.update_box(msg, rdb)
-                self.logger.info("Receive Connection from %s on EXCHANGE" % self.connect_id)
-                mysql_input(msg['ID'],
-                            msg['IP'],
-                            msg['PORT'],
-                            msg['CPU-HZ'],
-                            msg['CPU-NUM'],
-                            msg['CPU-USR'],
-                            msg['CPU-SYS'],
-                            msg['CPU-NIC'],
-                            msg['CPU-IDLE'],
-                            msg['CPU-IO'],
-                            msg['CPU-IRQ'],
-                            msg['CPU-SIRQ'],
-                            msg['LOADAVG-1'],
-                            msg['LOADAVG-5'],
-                            msg['LOADAVG-15'],
-                            msg['MEM-TOTAL'],
-                            msg['MEM-AVAIL'],
-                            msg['DISK-TOTAL'],
-                            msg['DISK-AVAIL'])
-
-                self.logger.info("Update box_info from %s on EXCHANGE" % self.connect_id)
-                mysql_update_box(msg['ID'],
-                                 msg['IP'],
-                                 msg['PORT'])
+                await self.mysql_process_on_msg(msg)
                 self.logger.info("Update box from %s on EXCHANGE" % self.connect_id)
         return True
+
+    @staticmethod
+    async def mysql_process_on_msg(msg):
+        mysql_input(msg['ID'],
+                    msg['IP'],
+                    msg['PORT'],
+                    msg['CPU-HZ'],
+                    msg['CPU-NUM'],
+                    msg['CPU-USR'],
+                    msg['CPU-SYS'],
+                    msg['CPU-NIC'],
+                    msg['CPU-IDLE'],
+                    msg['CPU-IO'],
+                    msg['CPU-IRQ'],
+                    msg['CPU-SIRQ'],
+                    msg['LOADAVG-1'],
+                    msg['LOADAVG-5'],
+                    msg['LOADAVG-15'],
+                    msg['MEM-TOTAL'],
+                    msg['MEM-AVAIL'],
+                    msg['DISK-TOTAL'],
+                    msg['DISK-AVAIL'])
+        mysql_update_box(msg['ID'],
+                         msg['IP'],
+                         msg['PORT'])
 
     async def response_to_box(self, response_msg, ws, rdb):
         response = await rdb.hgetall(self._rk("OWN_INFO"))

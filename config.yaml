@@ -36,7 +36,7 @@ ENTRANCE_EXPIRE_BOX_TIME: 120
 AMOUNT_OF_BOXES_PER_REQUEST: 20
 
 
-### Settings should not be touch
+### Settings should not be touched
 BASE_URL: "/dandelion"
 WEBSOCKET_URL: "ws"
 

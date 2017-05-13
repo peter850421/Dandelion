@@ -213,9 +213,9 @@ class BoxAsyncClient(BaseAsyncClient):
 
     async def on_EXCHANGE(self, msg, ws):
         try:
-            id = msg["ID"]
+            box_id = msg["ID"]
             with await self.rdp as rdb:
-                await rdb.hmset_dict(self._rk("EXCHANGE", id), msg)
+                await rdb.hmset_dict(self._rk("EXCHANGE", box_id), msg)
         except KeyError:
             self.logger.exception("There's no key 'ID' in msg.")
         except:
@@ -228,7 +228,7 @@ class BoxAsyncClient(BaseAsyncClient):
 
     async def update_self_exchange(self):
         """ Update Own Exchange Info """
-        ip = await self._loop.run_in_executor(None, get_ip)
+        ip = get_ip()
         connect_url = URLWrapper("http://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
         CPU = CPU_loading_info()
         Load = Loadaverage_info()
@@ -278,6 +278,9 @@ class BoxAsyncClient(BaseAsyncClient):
             self.logger.debug("Delete %s." % file)
 
     async def peer_connect(self, url, type):
+        """ This method is designed to connect box and box so that boxes can communicate
+            even if entrance server is down
+        """
         pass
 
 
@@ -355,6 +358,11 @@ class PublisherAsyncClient(BaseAsyncClient):
                     self.logger.exception("Key failure.")
 
     async def maintain_peers(self):
+        """
+        - First rank all known boxes in redis, the algorithm is implemented at rank_boxes
+        - According to the ranking, pick boxes with higher scores and then make connection
+        - Record it to the database
+        """
         await self._loop.run_in_executor(None, self.rank_boxes)
         with await self.rdp as rdb:
             box_list = await rdb.zrevrangebyscore(self._rk("BOX_RANKING"),
@@ -465,7 +473,6 @@ class PublisherAsyncClient(BaseAsyncClient):
                 await rdb.hmset_dict(self._rk("FILE", "PROCESSED_FILES", file_path), save_dict)
 
     async def pick_box(self, rdb, timeout=1):
-
         """
         Pop boxes from the head of list and push them back to the tail
         :return box's id and box's web socket
@@ -556,74 +563,3 @@ class FileManager:
                 logging.exception("Can't get Key ID")
         return response
 
-
-
-
-
-# class PublisherZMQClient(PublisherAsyncClient):
-#     async def run(self):
-#         while True:
-#             await self.ping_entrances()
-#             await self.rank_boxes()
-#             await self.maintain_peers()
-#             await asyncio.sleep(self.config["PUBLISHER_RUN_UPDATE_FREQ"])
-#
-#     async def maintain_peers(self):
-#         """
-#         - Count currently connecting peers amount
-#         - if the amount is under max_zmq_peers, then find peers from box ranking list
-#         - Make the box subscribe
-#         """
-#         with await self.redis_pool as redis:
-#             connecting_peers = await redis.zcount(self._rk("ZMQ", "EXPIRE_SET"))
-#             offset = self.config["MAX_ZMQ_PEERS"] - connecting_peers
-#             if offset <= 0: return
-#             get_boxes = await redis.zrangebyscore(self._rk("BOX_RANKING"), min=0)
-#             count = 0
-#             for box in get_boxes:
-#                 # If box is already in ZMQ EXPIRE_SET, it means that it already subscribes
-#                 if not await redis.zrank(self._rk("ZMQ", "EXPIRE_SET"), box):
-#                     asyncio.ensure_future(self.make_box_subscribe(box))
-#                     count += 1
-#                 if count == offset: return
-#
-#     async def make_box_subscribe(self, box_id):
-#         with await self.redis_pool as redis:
-#             box_data = await redis.hgetall(self._rk("SEARCH", box_id))
-#         if not all(key in box_data for key in ["IP", "PORT"]):
-#             self.logger.warning("No IP and PORT in %s data" % (box_id))
-#             return
-#         ip_url = "https://" + box_data["IP"] + ":" + box_data["PORT"]
-#         wrap = URLWrapper(ip_url)
-#         url = wrap(self.config["BASE_URL"], box_id, self.config["WEBSOCKET_URL"])
-#         ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-#         conn = TCPConnector(ssl_context=ssl_context)
-#         session = ClientSession(connector=conn)
-#         try:
-#             self.logger.debug("Trying to connect %s" % (url))
-#             async with session.ws_connect(url) as ws:
-#                 self._peers_ws[url] = ws
-#                 await self.send_subscribe(ws)
-#         except Exception as e:
-#             """
-#             This would be called anyway, remove the box from ranking and search.
-#             We can get this box or other new boxes from pinging entrances, so no
-#             need to save it inside out box
-#             """
-#             with await self.redis_pool as redis:
-#                 # await redis.zrem(self._rk("BOX_RANKING"), box_id)
-#                 await redis.expire(self._rk("SEARCH", box_id), 60)
-#         finally:
-#             await session.close()
-#
-#     async def send_subscribe(self, ws):
-#         request = {
-#             "ID": self.id,
-#             "IP": self.ip,
-#             "PORT": self.port,
-#             "TYPE": "PUBLISHER",
-#             "COMMAND": "SUBSCRIBE",
-#             "ZMQ_PING_ADDRESS": self.config["ZMQ_PUBLISHER_COLLECTING_ADDRESS"],
-#             "ZMQ_RECEIVE_ADDRESS": self.config["ZMQ_XPUB_ADDRESS"]
-#         }
-#         self.ws_send(request, ws)

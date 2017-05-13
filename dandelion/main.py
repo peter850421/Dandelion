@@ -3,7 +3,7 @@ import logging
 from multiprocessing import Process
 from .httpclient import BoxAsyncClient, PublisherAsyncClient
 from .httpserver import BoxAsyncServer, EntranceAsyncServer
-from .systeminfo import CPU_loading_info, Memory_info, Loadaverage_info, Disk_info, CPU_number
+
 
 class Box:
     def __init__(self, id, server_ip, port,
@@ -30,8 +30,8 @@ class Box:
             "redis_db": redis_db,
             "server_redis_minsize": server_redis_minsize,
             "server_redis_maxsize": server_redis_maxsize,
-            "client_redis_minsize": server_redis_minsize,
-            "client_redis_maxsize": server_redis_maxsize,
+            "client_redis_minsize": client_redis_minsize,
+            "client_redis_maxsize": client_redis_maxsize,
             "ping_entrance_freq": ping_entrance_freq,
             "log_level": log_level,
             "base_directory": base_directory,
@@ -76,3 +76,5 @@ class Publisher(PublisherAsyncClient):
 
 class Entrance(EntranceAsyncServer):
     pass
+
+__all__ = ("Box", "Publisher", "Entrance")
