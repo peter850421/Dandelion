@@ -54,7 +54,7 @@ def CPU_number():
     return(cpu_number)
 
 
-s
+
 if __name__=='__main__':
     print(CPU_number())
     print(CPU_loading_info())
