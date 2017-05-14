@@ -42,7 +42,7 @@ def Disk_info():
 
 def CPU_Hz():
     try:
-        cpu_Hz    = subprocess.check_output("lscpu | grep 'max MHz'").decode("utf-8").rsplit('\n', 1)[0].replace(' ','').split(':',)
+        cpu_Hz    = subprocess.check_output("lscpu | grep 'max MHz'",shell=True).decode("utf-8").rsplit('\n', 1)[0].replace(' ','').split(':',)
         cpu_Hz    = ''.join(list(filter(lambda x:x in '0123456789.',cpu_Hz[1])))
     except subprocess.CalledProcessError as e:
         cpu_Hz = 0
