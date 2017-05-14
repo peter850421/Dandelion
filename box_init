@@ -29,26 +29,27 @@ PROCESS_NAME=run_box
 LOGFILE=${PACKAGE_PATH}/run_box.log
 
 start() {
-	# Create ramdisk
-	mkdir -p $RAMDISK_PATH
-	mount -t tmpfs -o size=${RAMDISK_SIZE}M tmpfs ${RAMDISK_PATH}
-	# Start Nginx server
-	/usr/local/nginx/sbin/nginx
-    # Start Redis
-    if [ ! -e "$REDIS_PIDFILE" ]; then /etc/init.d/redis_6379 start; fi;
-	# Start box process in background
-	if [ -e $PACKAGE_PATH ];then
-		nohup python3.6 ${PACKAGE_PATH}/${BOX_FILE}  2>&1&
-	else
-		echo -e "PACKAGE MISSING, CAN'T START PROCESS"
-	fi
+        # Create ramdisk
+        mkdir -p $RAMDISK_PATH
+        mount -t tmpfs -o size=${RAMDISK_SIZE}M tmpfs ${RAMDISK_PATH}
+        # Start Nginx server
+        /usr/local/nginx/sbin/nginx
+
+
+        # Start box process in background
+        if [ -e $PACKAGE_PATH ];then
+                nohup python3 ${PACKAGE_PATH}/${BOX_FILE}  2>&1&
+        else
+                echo -e "PACKAGE MISSING, CAN'T START PROCESS"
+        fi
 }
 
 stop() {
-	/usr/local/nginx/sbin/nginx -s stop
-	redis-cli shutdown
-	pkill -9 python
+        /usr/local/nginx/sbin/nginx -s stop
+        redis-cli shutdown
+        pkill -9 python
 }
+
 
 ### main logic ###
 case "$1" in
