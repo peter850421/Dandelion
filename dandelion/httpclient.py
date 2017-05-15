@@ -379,9 +379,12 @@ class PublisherAsyncClient(BaseAsyncClient):
             for box_id in _peers_ws_keys:
                 current_url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
                 if not self._peers_ws[box_id].get("url") == current_url:
-                    await self._peers_ws[box_id]['ws'].close()
-                    self._peers_ws.pop(box_id, None)
-                    await rdb.zrem(self._rk("BOX_RANKING"), box_id)
+                    try:
+                        await self._peers_ws[box_id]['ws'].close()
+                        self._peers_ws.pop(box_id, None)
+                        await rdb.zrem(self._rk("BOX_RANKING"), box_id)
+                    except:
+                        pass
 
     def rank_boxes(self):
         """
