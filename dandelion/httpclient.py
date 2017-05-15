@@ -370,12 +370,13 @@ class PublisherAsyncClient(BaseAsyncClient):
             box_list = await rdb.zrevrangebyscore(self._rk("BOX_RANKING"),
                                                   offset=0,
                                                   count=self.min_peers)
+            _peers_ws_keys = list(self._peers_ws)
             for box_id in box_list:
-                if box_id not in self._peers_ws.keys():
+                if box_id not in _peers_ws_keys:
                     self._peers_ws[box_id] = {}
                     asyncio.ensure_future(self.connect_box(box_id))
 
-            for box_id in self._peers_ws.keys():
+            for box_id in _peers_ws_keys:
                 current_url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
                 if not self._peers_ws[box_id].get("url") == current_url:
                     await self._peers_ws[box_id]['ws'].close()
