@@ -378,9 +378,12 @@ class PublisherAsyncClient(BaseAsyncClient):
             for box_id in self._peers_ws.keys():
                 current_url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
                 if not self._peers_ws[box_id].get("url") == current_url:
-                    await self._peers_ws[box_id]['ws'].close()
-                    self._peers_ws.pop(box_id, None)
-                    await rdb.zrem(self._rk("BOX_RANKING"), box_id)
+                    try:
+                        await self._peers_ws[box_id]['ws'].close()
+                        self._peers_ws.pop(box_id, None)
+                        await rdb.zrem(self._rk("BOX_RANKING"), box_id)
+                    except KeyError:
+                        pass
 
     def rank_boxes(self):
         """
@@ -497,9 +500,12 @@ class PublisherAsyncClient(BaseAsyncClient):
         box = None
         while len(keys):
             box = random.choice(keys)
-            if self._peers_ws[box]['ws'] is not None:
-                return (box, self._peers_ws[box]['ws'])
-            keys.remove(box)
+            try:
+                if self._peers_ws[box]['ws'] is not None:
+                    return (box, self._peers_ws[box]['ws'])
+                keys.remove(box)
+            except:
+                pass
         return (None, None)
 
     async def cleanup(self):
@@ -564,4 +570,3 @@ class FileManager:
             except KeyError:
                 logging.exception("Can't get Key ID")
         return response
-
