@@ -200,8 +200,8 @@ class BoxAsyncClient(BaseAsyncClient):
         await self.update_self_exchange()
         asyncio.ensure_future(self.ping_entrances())
         while True:
-            asyncio.ensure_future(self.update_self_exchange())
-            asyncio.ensure_future(self.delete_expire_files())
+            self.update_self_exchange()
+            await self.delete_expire_files()
             await asyncio.sleep(10)
 
     async def ping_entrances(self):
@@ -365,18 +365,17 @@ class PublisherAsyncClient(BaseAsyncClient):
         - Record it to the database
         """
         await self._loop.run_in_executor(None, self.rank_boxes)
+        self.logger.info("---Maintain_Peers---")
         with await self.rdp as rdb:
             box_list = await rdb.zrevrangebyscore(self._rk("BOX_RANKING"),
                                                   offset=0,
                                                   count=self.min_peers)
-            _peers_ws_keys = self._peers_ws.keys()
-            self.logger.info("---Maintain_Peers---")
             for box_id in box_list:
-                if box_id not in _peers_ws_keys:
+                if box_id not in self._peers_ws.keys():
                     self._peers_ws[box_id] = {}
                     asyncio.ensure_future(self.connect_box(box_id))
 
-            for box_id in _peers_ws_keys:
+            for box_id in self._peers_ws.keys():
                 current_url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
                 if not self._peers_ws[box_id].get("url") == current_url:
                     await self._peers_ws[box_id]['ws'].close()
