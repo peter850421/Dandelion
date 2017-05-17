@@ -501,9 +501,12 @@ class PublisherAsyncClient(BaseAsyncClient):
         box = None
         while len(keys):
             box = random.choice(keys)
-            if self._peers_ws[box]['ws'] is not None:
-                return (box, self._peers_ws[box]['ws'])
-            keys.remove(box)
+            try:
+                if self._peers_ws[box]['ws'] is not None:
+                    return (box, self._peers_ws[box]['ws'])
+                keys.remove(box)
+            except:
+                pass
         return (None, None)
 
     async def cleanup(self):
@@ -568,4 +571,3 @@ class FileManager:
             except KeyError:
                 logging.exception("Can't get Key ID")
         return response
-
