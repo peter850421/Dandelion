@@ -477,6 +477,8 @@ class PublisherAsyncClient(BaseAsyncClient):
             with await self.redis_pool as rdb:
                 self.logger.debug("Save SENT FILE %s" % (self._rk("FILE", "PROCESSED_FILES", file_path)))
                 await rdb.hmset_dict(self._rk("FILE", "PROCESSED_FILES", file_path), save_dict)
+                #prevent old information to interferrence new informaion
+                await rdb.expire(self._rk("FILE", "PROCESSED_FILES", file_path),30)
 
     async def pick_box(self, rdb, timeout=1):
         """
@@ -504,9 +506,9 @@ class PublisherAsyncClient(BaseAsyncClient):
             try:
                 if self._peers_ws[box]['ws'] is not None:
                     return (box, self._peers_ws[box]['ws'])
-                keys.remove(box)
+
             except:
-                pass
+                keys.remove(box)
         return (None, None)
 
     async def cleanup(self):
