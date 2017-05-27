@@ -14,7 +14,7 @@
 
 # RAMDISK SETTINGS
 RAMDISK_SIZE=400
-RAMDISK_PATH=/tmp/hls
+RAMDISK_PATH=/tmp
 # Nginx SETTINGS
 NGINX_PATH=/usr/local/nginx/sbin/nginx
 NGINX_HTTP_PORT=8000
@@ -34,7 +34,8 @@ start() {
         mount -t tmpfs -o size=${RAMDISK_SIZE}M tmpfs ${RAMDISK_PATH}
         # Start Nginx server
         /usr/local/nginx/sbin/nginx
-
+        # Start Redis
+        redis-server --daemonize yes
 
         # Start box process in background
         if [ -e $PACKAGE_PATH ];then
