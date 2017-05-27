@@ -39,7 +39,7 @@ start() {
 
         # Start box process in background
         if [ -e $PACKAGE_PATH ];then
-                nohup python3 ${PACKAGE_PATH}/${BOX_FILE}  2>&1&
+                nohup python3.6 ${PACKAGE_PATH}/${BOX_FILE} & 2>&1&
         else
                 echo -e "PACKAGE MISSING, CAN'T START PROCESS"
         fi

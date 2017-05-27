@@ -200,8 +200,8 @@ class BoxAsyncClient(BaseAsyncClient):
         await self.update_self_exchange()
         asyncio.ensure_future(self.ping_entrances())
         while True:
-            self.update_self_exchange()
-            await self.delete_expire_files()
+            asyncio.ensure_future(self.update_self_exchange())
+            asyncio.ensure_future(self.delete_expire_files())
             await asyncio.sleep(10)
 
     async def ping_entrances(self):
