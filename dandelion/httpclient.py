@@ -262,7 +262,7 @@ class BoxAsyncClient(BaseAsyncClient):
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
         self.logger.debug("UPDATE SELF EXCHANGE %s" % str(ex_dict))
 
-     async def delete_expire_files(self):
+    async def delete_expire_files(self):
         while True:
             self.logger.debug("---Delete_expire_fires---")
             with await self.rdp as rdb:
