@@ -199,9 +199,9 @@ class BoxAsyncClient(BaseAsyncClient):
     async def run(self):
         await self.update_self_exchange()
         asyncio.ensure_future(self.ping_entrances())
+        asyncio.ensure_future(self.delete_expire_files())
         while True:
-            asyncio.ensure_future(self.update_self_exchange())
-            asyncio.ensure_future(self.delete_expire_files())
+            await(self.update_self_exchange())
             await asyncio.sleep(10)
 
     async def ping_entrances(self):
@@ -262,21 +262,26 @@ class BoxAsyncClient(BaseAsyncClient):
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
         self.logger.debug("UPDATE SELF EXCHANGE %s" % str(ex_dict))
 
-    async def delete_expire_files(self):
-        with await self.rdp as rdb:
-            expire_files = await rdb.zrangebyscore(self._rk("EXPIRE_FILES"),
+     async def delete_expire_files(self):
+        while True:
+            self.logger.debug("---Delete_expire_fires---")
+            with await self.rdp as rdb:
+                expire_files = await rdb.zrangebyscore(self._rk("EXPIRE_FILES"),
                                                    min=0,
                                                    max=int(time.time()))
-            if len(expire_files):
-                await rdb.zrem(self._rk("EXPIRE_FILES"), *expire_files)
-            else:
-                return
-        for file in expire_files:
-            try:
-                os.remove(file)
-            except OSError:
-                os.removedirs(file)
-            self.logger.debug("Delete %s." % file)
+                if len(expire_files):
+                    await rdb.zrem(self._rk("EXPIRE_FILES"), *expire_files)
+                else:
+                    await asyncio.sleep(10)
+                    continue
+            for file in expire_files:
+                try:
+                   os.remove(file)
+                except :
+                   self.logger.warning("file %s is not a file or dir." %file )
+                else:
+                   self.logger.debug("Delete %s." % file)
+            await asyncio.sleep(10)
 
     async def peer_connect(self, url, type):
         """ This method is designed to connect box and box so that boxes can communicate
