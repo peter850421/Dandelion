@@ -229,7 +229,7 @@ class BoxAsyncClient(BaseAsyncClient):
 
     async def update_self_exchange(self):
         """ Update Own Exchange Info """
-        ip = get_ip()
+        await ip = get_ip()
         connect_url = URLWrapper("http://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
         CPU = CPU_loading_info()
         Load = Loadaverage_info()

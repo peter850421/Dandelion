@@ -101,11 +101,11 @@ def filter_bytes_headers(message):
     headers = json.loads(headers.split(b"<Dandelion>")[1].decode("utf-8"))
     return headers, data
 
-def get_ip():
+async def get_ip():
     ip = None
     for url in GET_IP_URL:
         try:
-            ip = str(requests.get(url, timeout=3).text.replace('\n', ''))
+            await ip = str(requests.get(url, timeout=3).text.replace('\n', ''))
             if len(ip.split('.')) == 4:
                 return ip
         except requests.exceptions.RequestException as e:
@@ -113,4 +113,3 @@ def get_ip():
         except:
             pass
     return ip
-
