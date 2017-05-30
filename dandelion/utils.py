@@ -107,7 +107,7 @@ async def get_ip():
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
-                    ip = await str(resp.text()).text.replace('\n', ''))
+                    ip = await str(resp.text()).text.replace('\n', '')
             if len(ip.split('.')) == 4:
                 return ip
         except requests.exceptions.RequestException as e:
