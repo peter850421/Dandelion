@@ -105,7 +105,7 @@ async def get_ip():
     ip = None
     for url in GET_IP_URL:
         try:
-            await ip = str(requests.get(url, timeout=3).text.replace('\n', ''))
+            ip = await str(requests.get(url, timeout=3).text.replace('\n', ''))
             if len(ip.split('.')) == 4:
                 return ip
         except requests.exceptions.RequestException as e:
