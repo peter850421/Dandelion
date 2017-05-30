@@ -133,12 +133,12 @@ class BaseAsyncClient(object):
     async def on_DEFAULT(self, msg, ws):
         pass
 
-    def ws_send(self, request, ws):
+    async def ws_send(self, request, ws):
         """
         :param request: dict
         """
         try:
-            ws.send_json(request)
+            await ws.send_json(request)
         except ValueError:
             self.logger.exception("Could not serialize self_exchange.")
         except (RuntimeError, TypeError):
@@ -224,7 +224,7 @@ class BoxAsyncClient(BaseAsyncClient):
     async def send_entrance(self, ws):
         with await self.rdp as rdb:
             self_exchange = await rdb.hgetall(self._rk("SELF_EXCHANGE"))
-        self.ws_send(self_exchange, ws)
+        await self.ws_send(self_exchange, ws)
         self.logger.info("SEND Msg to ENTRANCE : %s" % str(self_exchange))
 
     async def update_self_exchange(self):
