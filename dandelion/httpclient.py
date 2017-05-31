@@ -351,7 +351,7 @@ class PublisherAsyncClient(BaseAsyncClient):
             "TYPE": "PUBLISHER",
             "COMMAND": "SEARCH",
         }
-        self.ws_send(request, ws)
+        await self.ws_send(request, ws)
 
     async def on_SEARCH(self, msg, ws):
         with await self.rdp as rdb:
@@ -445,7 +445,7 @@ class PublisherAsyncClient(BaseAsyncClient):
             "TYPE": "PUBLISHER",
             "COMMAND": "PUBLISH"
         }
-        self.ws_send(message, ws)
+        await self.ws_send(message, ws)
 
     async def publish(self):
         while True:
@@ -457,7 +457,7 @@ class PublisherAsyncClient(BaseAsyncClient):
                 box, ws = await self.pick_box(rdb, timeout=1)
                 if ws is None:
                     #await rdb.lpush(self._rk("FILE", "FILES_SENDING_QUEUE"), task_json)
-                    #Stream-Platform doesn't need to send a file twice above. 
+                    #Stream-Platform doesn't need to send a file twice above.
                     self.logger.warning("No available box to send file.")
                     await asyncio.sleep(3)
                     continue
@@ -465,7 +465,7 @@ class PublisherAsyncClient(BaseAsyncClient):
                 infile = open(file_path, "rb")
                 b_hdrs = wrapbh(task)
                 try:
-                    ws.send_bytes(b_hdrs + infile.read())
+                    await ws.send_bytes(b_hdrs + infile.read())
                 except TypeError:
                     self.logger.exception("Data is not bytes, bytearray or memoryview.")
                     msg = "Data is not bytes, bytearray or memoryview."
