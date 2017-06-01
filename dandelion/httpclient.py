@@ -63,7 +63,7 @@ class BaseAsyncClient(object):
         self.rdp = await aioredis.create_pool(kw["redis_address"],
                                               db=kw["redis_db"],
                                               minsize=kw["redis_minsize"],
-                                              maxsize=kw["redis_minsize"],
+                                              maxsize=kw["redis_maxsize"],
                                               encoding="utf-8")
 
     def start(self):
