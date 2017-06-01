@@ -1,25 +1,27 @@
 import yaml
 import uuid
 from dandelion import Box
+import os
 
 
 if __name__ == '__main__':
+    ROOT_DIR = os.environ["ROOT_DIR"] = os.path.dirname(__file__)
     # Get box id
     id = ''
     try:
-        f = open("/root/Dandelion/box-id.txt", "r")
+        f = open(os.path.join(ROOT_DIR, "box-id.txt"), "r")
         id = f.read()
         f.close()
     except IOError:
         pass
     if not id or id[:4] != "box-":
         id = "box-" + uuid.uuid4().hex
-        f = open("/root/Dandelion/box-id.txt", "w")
+        f = open(os.path.join(ROOT_DIR, "box-id.txt"), "w")
         f.write(id)
         f.close()
     print("Your ID: %s" % id)
     # Load configfile
-    f = open("/root/Dandelion/config.yaml", "r")
+    f = open(os.path.join(ROOT_DIR, "config.yaml"), "r")
     config = yaml.safe_load(f)
     redis_address = (config["REDIS_HOST"],config["REDIS_PORT"])
     box = Box(id,

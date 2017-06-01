@@ -3,6 +3,7 @@ import asyncio
 import aioredis
 import logging
 import ssl
+import os
 import time
 import uvloop
 from aiohttp import web
@@ -107,8 +108,18 @@ class BaseAsyncServer(object):
 
         - if ssl_context is None, then http will be used instead of https
         """
+        try:
+            ROOT_DIR = os.environ["ROOT_DIR"]
+        except KeyError:
+            raise KeyError("ROOT_DIR is not defined.")
+        CRT_PATH = os.path.join(ROOT_DIR, "server.crt")
+        KEY_PATH = os.path.join(ROOT_DIR, "server.key")
+        if not os.path.exists(CRT_PATH):
+            raise FileNotFoundError("Can't find server.crt.")
+        if not os.path.exists(KEY_PATH):
+            raise FileNotFoundError("Can't find server.key.")
         if ssl:
-            ssl_context.load_cert_chain('/root/Dandelion/server.crt', '/root/Dandelion/server.key')
+            ssl_context.load_cert_chain(CRT_PATH, KEY_PATH)
         web.run_app(self.app,
                     host=self.ip,
                     port=self.port,
@@ -119,7 +130,6 @@ class BaseAsyncServer(object):
         await self.rdp.wait_closed()
         for ws in app['websockets']:
             await ws.close()
-
 
     async def register_on_startup(self, app):
         pass

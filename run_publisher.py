@@ -1,9 +1,12 @@
 import uuid
 import yaml
+import os
 from dandelion import Publisher
 
 
+
 if __name__ == '__main__':
+    ROOT_DIR = os.environ["ROOT_DIR"] = os.path.dirname(__file__)
     id = ''
     try:
         f = open("publisher-id.txt", "r")
@@ -13,11 +16,11 @@ if __name__ == '__main__':
         pass
     if not id or "publisher-" not in id:
         id = "publisher-" + uuid.uuid4().hex
-        f = open("publisher-id.txt", "w")
+        f = open(os.path.join(ROOT_DIR, "publisher-id.txt"), "w")
         f.write(id)
         f.close()
     print("Your ID: %s" % id)
-    f = open("config.yaml", "r")
+    f = open(os.path.join(ROOT_DIR, "config.yaml"), "r")
     config = yaml.safe_load(f)
     redis_address = (config["REDIS_HOST"], config["REDIS_PORT"])
     publisher = Publisher(id,

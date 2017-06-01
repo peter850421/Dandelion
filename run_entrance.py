@@ -1,8 +1,10 @@
 from dandelion import Entrance
 import uuid
 import yaml
+import os
 
 if __name__ == '__main__':
+    ROOT_DIR = os.environ["ROOT_DIR"] = os.path.dirname(__file__)
     id = ''
     try:
         f = open("entrance-id.txt", "r")
@@ -12,11 +14,11 @@ if __name__ == '__main__':
         pass
     if not id or "entrance-" not in id:
         id = "entrance-" + uuid.uuid4().hex
-        f = open("entrance-id.txt", "w")
+        f = open(os.path.join(ROOT_DIR, "entrance-id.txt"), "w")
         f.write(id)
         f.close()
     print("Your ID: %s" % id)
-    f = open("config.yaml", "r")
+    f = open(os.path.join(ROOT_DIR, "config.yaml"), "r")
     config = yaml.safe_load(f)
     redis_address = (config["REDIS_HOST"], config["REDIS_PORT"])
     entrance = Entrance(id=id, ip=config["ENTRANCE_IP"], port=config["ENTRANCE_PORT"],

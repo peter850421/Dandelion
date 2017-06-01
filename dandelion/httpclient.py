@@ -54,7 +54,6 @@ class BaseAsyncClient(object):
                                                                      redis_maxsize=redis_maxsize,
                                                                      )))
 
-
     @property
     def redis_pool(self):
         return self.rdp
@@ -69,7 +68,6 @@ class BaseAsyncClient(object):
 
     def start(self):
         """Start process individually, otherwise register on server process"""
-
         run_task = asyncio.ensure_future(self.run())
         try:
             self.logger.info("{0} Async Client Loop Start...".format(self.id))
@@ -201,7 +199,7 @@ class BoxAsyncClient(BaseAsyncClient):
         asyncio.ensure_future(self.ping_entrances())
         asyncio.ensure_future(self.delete_expire_files())
         while True:
-            await(self.update_self_exchange())
+            await self.update_self_exchange()
             await asyncio.sleep(10)
 
     async def ping_entrances(self):
@@ -230,6 +228,8 @@ class BoxAsyncClient(BaseAsyncClient):
     async def update_self_exchange(self):
         """ Update Own Exchange Info """
         ip = await get_ip()
+        if ip is None:
+            raise ValueError("No available sites to get box's ip")
         connect_url = URLWrapper("http://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
         CPU = CPU_loading_info()
         Load = Loadaverage_info()
@@ -256,7 +256,8 @@ class BoxAsyncClient(BaseAsyncClient):
                    "MEM-TOTAL"     : Memory[0],
                    "MEM-AVAIL"     : Memory[2],
                    "DISK-TOTAL"    : Disk[0],
-                   "DISK-AVAIL"    : Disk[1]}
+                   "DISK-AVAIL"    : Disk[1]
+                   }
 
         with await self.rdp as rdb:
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
