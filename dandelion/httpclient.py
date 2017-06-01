@@ -195,19 +195,17 @@ class BoxAsyncClient(BaseAsyncClient):
         })
 
     async def run(self):
-        await self.update_self_exchange()
-        asyncio.ensure_future(self.ping_entrances())
         asyncio.ensure_future(self.delete_expire_files())
         while True:
             await self.update_self_exchange()
-            await asyncio.sleep(10)
+            await self.ping_entrances()
+            await asyncio.sleep(self.conf["ping_entrance_freq"])
 
     async def ping_entrances(self):
-        while True:
-            for url in self.entrance_urls:
-                if url not in self._entrance_ws.keys():
-                    asyncio.ensure_future(self.connect_entrance(url))
-            await asyncio.sleep(self.conf["ping_entrance_freq"])
+        for url in self.entrance_urls:
+            if url not in self._entrance_ws.keys():
+                asyncio.ensure_future(self.connect_entrance(url))
+
 
     async def on_EXCHANGE(self, msg, ws):
         try:
