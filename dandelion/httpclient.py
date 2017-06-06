@@ -327,7 +327,7 @@ class PublisherAsyncClient(BaseAsyncClient):
         asyncio.ensure_future(self.collecting())
         asyncio.ensure_future(self.publish())
         while True:
-            await self.maintain_peers()
+            asyncio.ensure_future(self.maintain_peers())
             await asyncio.sleep(3)
 
     async def collecting(self):
@@ -456,9 +456,9 @@ class PublisherAsyncClient(BaseAsyncClient):
                 box, ws = await self.pick_box(rdb, timeout=1)
                 if ws is None:
                     #await rdb.lpush(self._rk("FILE", "FILES_SENDING_QUEUE"), task_json)
-                    #Stream-Platform doesn't need to send a file twice above.
+                    #Stream-Platform doesn't need to send a file more than twice.
                     self.logger.warning("No available box to send file.")
-                    await asyncio.sleep(3)
+                    #await asyncio.sleep(3)
                     continue
             try:
                 infile = open(file_path, "rb")
