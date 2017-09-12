@@ -106,7 +106,7 @@ class BaseAsyncClient(object):
                         break
                     elif msg.type == WSMsgType.ERROR:
                         break
-        except (aiohttp.WSServerHandshakeError, aiohttp.errors.ClientOSError):
+        except (aiohttp.WSServerHandshakeError, aiohttp.ClientOSError):
             self.logger.exception("Unable to connect to %s." % url, exc_info=False)
         except:
             self.logger.exception("Fail in connect_entrance.")
