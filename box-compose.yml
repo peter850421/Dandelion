@@ -12,7 +12,7 @@ services:
       - /tmp:/tmp
 
   redis:
-    build: ./compose/redis
+    build: ./compose/box/redis
 
   nginx:
     build: ./compose/box/nginx

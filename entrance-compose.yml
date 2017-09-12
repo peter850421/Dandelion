@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  entrance:
+    build:
+      context: .
+      dockerfile: ./compose/entrance/Dockerfile
+    depends_on:
+      - redis
+    volumes:
+      - /tmp:/tmp
+
+  redis:
+    image: redis:4.0-alpine

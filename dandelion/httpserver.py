@@ -54,9 +54,8 @@ class BaseAsyncServer(object):
         asyncio.set_event_loop(self._loop)
         self._rk = RedisKeyWrapper(self.id)
         self.conf = {
-            "redis_address":redis_address,
-            "redis_db":redis_db,
-
+            "redis_address": redis_address,
+            "redis_db": redis_db,
         }
         self._loop.run_until_complete(asyncio.gather(self.initialize(redis_address=redis_address,
                                                                      redis_db=redis_db,
