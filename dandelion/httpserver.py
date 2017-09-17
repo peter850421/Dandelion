@@ -2,7 +2,6 @@ import sys
 import asyncio
 import aioredis
 import logging
-import ssl
 import os
 import time
 import uvloop
@@ -98,37 +97,27 @@ class BaseAsyncServer(object):
     def setup_middlewares(self, **kwargs):
         pass
 
-    def serve_forever(self, ssl_context=ssl.SSLContext(ssl.PROTOCOL_SSLv23)):
+    def serve_forever(self):
         """
         Start to run server
 
         - If other tasks would like to run along with server on the loop, you
           should ensure_future before calling serve_forever
-
-        - if ssl_context is None, then http will be used instead of https
         """
         try:
             ROOT_DIR = os.environ["ROOT_DIR"]
         except KeyError:
             raise KeyError("ROOT_DIR is not defined.")
-        CRT_PATH = os.path.join(ROOT_DIR, "server.crt")
-        KEY_PATH = os.path.join(ROOT_DIR, "server.key")
-        if not os.path.exists(CRT_PATH):
-            raise FileNotFoundError("Can't find server.crt.")
-        if not os.path.exists(KEY_PATH):
-            raise FileNotFoundError("Can't find server.key.")
-        if ssl:
-            ssl_context.load_cert_chain(CRT_PATH, KEY_PATH)
         web.run_app(self.app,
                     host=self.ip,
-                    port=self.port,
-                    ssl_context=ssl_context)
+                    port=self.port
+                    )
 
     async def register_on_cleanup(self, app):
         self.rdp.close()
         await self.rdp.wait_closed()
         for ws in app['websockets']:
-            await ws.close()
+            ws.close()
 
     async def register_on_startup(self, app):
         pass
@@ -136,8 +125,8 @@ class BaseAsyncServer(object):
 
 class EntranceAsyncServer(BaseAsyncServer):
     def __init__(self, id,
-                 ip=None,
-                 port=None,
+                 ip,
+                 port,
                  loop=None,
                  redis_address=("127.0.0.1", 6379),
                  redis_db=0,
@@ -204,8 +193,8 @@ class EntranceAsyncServer(BaseAsyncServer):
 
 class BoxAsyncServer(BaseAsyncServer):
     def __init__(self, id,
-                 ip=None,
-                 port=None,
+                 ip,
+                 port,
                  loop=None,
                  redis_address=("localhost", 6379),
                  redis_db=0,

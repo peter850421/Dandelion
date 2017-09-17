@@ -147,7 +147,7 @@ class BaseAsyncClient(object):
         self.logger.info("Cleaning up entrance websockets...")
         self.rdp.close()
         await self.rdp.wait_closed()
-        await self.session.close()
+        self.session.close()
         for ws in self._entrance_ws.keys():
             await self._entrance_ws[ws].close()
 
@@ -263,7 +263,7 @@ class BoxAsyncClient(BaseAsyncClient):
 
     async def delete_expire_files(self):
         while True:
-            self.logger.debug("---Delete_expire_fires---")
+            self.logger.debug("---Delete_expire_files---")
             with await self.rdp as rdb:
                 expire_files = await rdb.zrangebyscore(self._rk("EXPIRE_FILES"),
                                                    min=0,

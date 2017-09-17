@@ -1,6 +1,6 @@
 import yaml
-import uuid
 from dandelion import Box
+from dandelion.utils import create_id
 import os
 
 
@@ -15,12 +15,12 @@ if __name__ == '__main__':
     except IOError:
         pass
     if not id or id[:4] != "box-":
-        id = "box-" + uuid.uuid4().hex
+        id = create_id("box")
         f = open(os.path.join(ROOT_DIR, "box-id.txt"), "w")
         f.write(id)
         f.close()
     print("Your ID: %s" % id)
-    # Load configfile
+    # Load config file
     f = open(os.path.join(ROOT_DIR, "config.yaml"), "r")
     config = yaml.safe_load(f)
     redis_address = (config["REDIS_HOST"],config["REDIS_PORT"])

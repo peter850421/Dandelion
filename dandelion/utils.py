@@ -1,6 +1,6 @@
 import aiohttp
 import json
-import requests
+import uuid
 
 GET_IP_URL = [
               'http://bot.whatismyipaddress.com',
@@ -15,6 +15,10 @@ url_geo = [
     "http://ip-api.com/json",
     'http://ipinfo.io/json'
 ]
+
+
+def create_id(prefix):
+    return "{0}-{1}".format(prefix, uuid.uuid4().hex)
 
 
 def redis_key_wrap(*args):

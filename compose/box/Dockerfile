@@ -9,6 +9,4 @@ COPY . /app
 WORKDIR /app
 RUN python /app/setup.py install
 
-
-ENTRYPOINT ["python", "run_box.py"]
-CMD ["bash"]
+#ENTRYPOINT ["python", "run_box.py"]

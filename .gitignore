@@ -1,6 +1,6 @@
 *.pyc
 *.sqlite3
-
+*.log*
 ### Project ###
 *-id.txt
 config.yaml

@@ -7,18 +7,20 @@ services:
       dockerfile: ./compose/box/Dockerfile
     depends_on:
       - redis
-      - nginx
     volumes:
       - /tmp:/tmp
+    command: ["python", "/app/run_box.py"]
 
   redis:
-    build: ./compose/box/redis
+    image: redis:4.0.1-alpine
 
   nginx:
     build: ./compose/box/nginx
     volumes:
       - /tmp:/tmp
     ports:
-      - "0.0.0.0:8000:8000"
+      - "8000:8000"
+    depends_on:
+      - box
 
 
