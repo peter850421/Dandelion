@@ -1,6 +1,7 @@
 import aiohttp
 import json
 import uuid
+import logging
 
 GET_IP_URL = [
               'http://bot.whatismyipaddress.com',
@@ -17,6 +18,20 @@ url_geo = [
 ]
 
 
+async def get_ip():
+    ip = None
+    for url in GET_IP_URL:
+        try:
+            async with aiohttp.ClientSession(read_timeout=10, conn_timeout=10) as session:
+                async with session.get(url) as resp:
+                    ip = str(await resp.text()).replace('\n', '')
+            if len(ip.split('.')) == 4:
+                return ip
+        except:
+            pass
+    return ip
+
+
 def create_id(prefix):
     return "{0}-{1}".format(prefix, uuid.uuid4().hex)
 
@@ -30,6 +45,7 @@ def redis_key_wrap(*args):
         else:
             s = s + ":" + str(args[i])
     return s
+
 
 class RedisKeyWrapper:
     def __init__(self, *args):
@@ -63,7 +79,12 @@ async def geoip_fetch():
 
 
 class URLWrapper:
+    """
+    The generated url will always have a backslash at the end
+    """
     def __init__(self, base_url):
+        if not base_url:
+            base_url = "/"
         if base_url[-1] != "/":
             base_url += '/'
         self.base_url = base_url
@@ -79,15 +100,13 @@ class URLWrapper:
                 item = item[1:]
             if item[-1] == '/':
                 item = item[:-1]
-            if i == len(args) - 1:
-                url += item
-            else:
-                url = url + item + "/"
+            url = url + item + "/"
         return url
 
 
 def get_key_tail(key):
     return key.rsplit(":", 1)[-1]
+
 
 def wrap_bytes_headers(headers):
     """
@@ -100,20 +119,22 @@ def wrap_bytes_headers(headers):
     b_hdrs = json.dumps(headers).encode("utf-8")
     return b'<Dandelion>'+b_hdrs+b'</Dandelion>'
 
+
 def filter_bytes_headers(message):
     headers, data = message.split(b"</Dandelion>", 1)
     headers = json.loads(headers.split(b"<Dandelion>")[1].decode("utf-8"))
     return headers, data
 
-async def get_ip():
-    ip = None
-    for url in GET_IP_URL:
-        try:
-            async with aiohttp.ClientSession(read_timeout=10, conn_timeout=10) as session:
-                async with session.get(url) as resp:
-                    ip = str(await resp.text()).replace('\n', '')
-            if len(ip.split('.')) == 4:
-                return ip
-        except:
-            pass
-    return ip
+
+async def ws_send_json(request, ws, logger=logging.getLogger()):
+    try:
+        ws.send_json(request)
+    except ValueError:
+        logger.exception("Could not serialize request.")
+    except (RuntimeError, TypeError):
+        logger.exception("Could not send_json().")
+
+
+def create_random_file_with_size(file_path, size):
+    with open(file_path, "wb") as out:
+        out.truncate(size)

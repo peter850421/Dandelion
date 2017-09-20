@@ -2,9 +2,8 @@ import time
 import os
 import subprocess
 from aiohttp import web, WSMsgType
-from .utils import RedisKeyWrapper
-from .utils import filter_bytes_headers
-from .mysql_input import mysql_input,mysql_update_box
+from .utils import RedisKeyWrapper, filter_bytes_headers, ws_send_json
+from .mysql_input import mysql_input, mysql_update_box
 
 async def index(request):
     request.app["logger"].debug("trigger index!!")
@@ -12,7 +11,6 @@ async def index(request):
 
 
 async def post(request):
-    print(request.headers)
     return web.Response(text="HI {0}".format(request.app["ID"]))
 
 
@@ -24,16 +22,18 @@ class BaseWebSocketHandler(object):
     """
 
     async def __call__(self, request):
-        self.id = request.app["ID"]
-        self.rdp = request.app["redis_pool"]
+        self.app = request.app
+        self.id = self.app["ID"]
+        self.rdp = self.app["redis_pool"]
         self.base_dir = None
         self.connect_id = None
-        self.conf = request.app["conf"]
+        self.conf = self.app["conf"]
         self._rk = RedisKeyWrapper(self.id)
-        self.logger = request.app["logger"]
+        self.logger = self.app["logger"]
+
         ws = web.WebSocketResponse()
         await ws.prepare(request)
-        request.app['websockets'].append(ws)
+        self.app['websockets'].append(ws)
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
@@ -53,18 +53,22 @@ class BaseWebSocketHandler(object):
             """
             If WSMsgType.CLOSE, WSMsgType.CLOSING, WSMsgType.CLOSED occurs
             """
-            request.app['websockets'].remove(ws)
+            self.app['websockets'].remove(ws)
         return ws
 
     async def _dispatch(self, msg, ws, request):
         try:
             load = msg.json()
             try:
+                await self.assert_message_is_formal(load)
                 command = str(load["COMMAND"])
+            except (KeyError, ValueError) as e:
+                await self.response_wrong_format(ws, load)
+                return True
+            try:
                 return await getattr(self, "on_" + command, "on_DEFAULT")(load, ws, request)
-            except KeyError:
-                self.logger.exception("No COMMAND key in msg.")
-                await self.on_DEFAULT(msg, ws, request)
+            except Exception as e:
+                self.logger.exception(e)
         except ValueError:
             self.logger.exception("Message is not valid JSON.")
         return True
@@ -77,23 +81,40 @@ class BaseWebSocketHandler(object):
         return True
 
     async def ws_send(self, request, ws):
-        self.logger.debug(" ws_send(): %s" % (str(request)))
-        try:
-            ws.send_json(request)
-        except ValueError:
-            self.logger.exception("Could not serialize request.")
-        except (RuntimeError, TypeError):
-            self.logger.exception("Could not send_json().")
+        self.logger.debug("ws_send(): %s" % (str(request)))
+        await ws_send_json(request, ws, self.logger)
+
+    @staticmethod
+    async def assert_message_is_formal(msg):
+        keys = ["ID", "IP", "PORT", "TYPE"]
+        for k in keys:
+            if k not in msg:
+                raise KeyError("No key %s in received msg." % k)
+            elif not msg[k]:
+                raise ValueError("Value of key %s should not be empty or None" % k)
+
+    async def get_own_info_dict(self):
+        raise NotImplementedError()
+
+    async def response_wrong_format(self, ws, msg):
+        response = await self.get_own_info_dict()
+        response["ERROR"] = "Wrong format in your message. Your message: %s" % (str(msg))
+        await self.ws_send(response, ws)
 
 
 class BoxWebSocketHandler(BaseWebSocketHandler):
+    async def get_own_info_dict(self):
+        return {
+            "ID": self.id,
+            "IP": self.app["IP"],
+            "PORT": self.app["PORT"],
+            "TYPE": "BOX"
+        }
+
     async def on_EXCHANGE(self, msg, ws, request):
+        """ Mainly, exchanging both info
+        - Store peer's message to redis and reply own box exchange message to peer
         """
-        - Store peer's message to redis and send own exchange message to peer
-        """
-        keys = ["ID", "IP", "PORT", "TYPE"]
-        if not all(key in msg.keys() for key in keys):
-            self.logger.debug("Wrong EXCHANGE format")
         with await self.rdp as rdb:
             try:
                 await rdb.hmset_dict(self._rk("EXCHANGE", msg["ID"]), msg)
@@ -104,23 +125,34 @@ class BoxWebSocketHandler(BaseWebSocketHandler):
         return True
 
     async def on_PUBLISH(self, msg, ws, request):
-        keys = ["ID", "IP", "PORT", "TYPE"]
-        if not all(key in msg.keys() for key in keys):
-            self.logger.debug("Wrong PUBLISH format")
-            return True
+        """
+        This method should be invoked by publisher, which is searching for box to get available
+        connections.
+        """
         with await self.rdp as rdb:
             try:
                 self.connect_id = msg["ID"]
                 await rdb.hmset_dict(self._rk("EXCHANGE", self.connect_id), msg)
             except:
                 self.logger.exception("msg format is not valid dict")
+        # Create a path for publisher for later use.
         self.base_dir = os.path.join(self.conf["base_directory"], self.connect_id)
         if not os.path.isdir(self.base_dir):
             subprocess.check_output(['mkdir', '-p', self.base_dir])
         self.logger.info("Receive Connection from %s" % self.connect_id)
+        response = await self.get_own_info_dict()
+        response["MESSAGE"] = "ACCEPTED"
+        response["COMMAND"] = "PUBLISH"
+        await self.ws_send(response, ws)
         return False
 
     async def on_BINARY(self, msg, ws, request):
+        """
+        Receive binary message from publisher.
+        1. Extract the msg into headers and file data
+        2. store the file
+        3. Store the file path to expire files set
+        """
         headers, data = filter_bytes_headers(msg)
         try:
             file_path = headers["FILE_PATH"]
@@ -128,7 +160,7 @@ class BoxWebSocketHandler(BaseWebSocketHandler):
             if file_path[0] == '/':
                 file_path = file_path[1:]
             file_path = os.path.join(self.base_dir, file_path)
-            file_folder = file_path.rsplit('/', 1)[0]
+            file_folder = os.path.dirname(file_path)
             if not os.path.isdir(file_folder):
                 subprocess.check_output(['mkdir', '-p', file_folder])
             outfile = open(file_path, "wb")
@@ -137,39 +169,40 @@ class BoxWebSocketHandler(BaseWebSocketHandler):
             self.logger.info("Receive %s from %s" % (headers["FILE_PATH"], self.connect_id))
             try:
                 ttl = int(headers["TTL"])
-                if ttl:
-                    with await self.rdp as rdb:
-                        await rdb.zadd(self._rk("EXPIRE_FILES"),
-                                       int(time.time()) + ttl,
-                                       file_path)
             except KeyError:
-                pass
+                ttl = 60
+            if ttl:
+                with await self.rdp as rdb:
+                    await rdb.zadd(self._rk("EXPIRE_FILES"),
+                                   int(time.time()) + ttl,
+                                   file_path)
         except KeyError:
             self.logger.exception("No key 'FILE_PATH' in headers.")
 
 
 class EntranceWebSocketHandler(BaseWebSocketHandler):
+    async def get_own_info_dict(self):
+        with await self.rdp as rdb:
+            return await rdb.hgetall(self._rk("OWN_INFO"))
+
     async def on_EXCHANGE(self, msg, ws, request):
         """
         Handle EXCHANGE request from boxes
         - Save exchange from the box in namespace (id):EXCHANGE:(box-exchange)
         - If the format is wrong, then send error message instead of saving it.
         """
-        keys = ["ID", "IP", "PORT", "TYPE"]
         with await self.rdp as rdb:
-            if not all(key in msg.keys() for key in keys):
-                self.logger.debug("Wrong EXCHANGE format")
-                await self.response_to_box("Wrong EXCHANGE Format.", ws, rdb)
-            else:
-                self.connect_id = msg["ID"]
-                try:
-                    await rdb.hmset_dict(self._rk("EXCHANGE", self.connect_id), msg)
-                except:
-                    self.logger.exception("msg is not valid dictionary")
-                await self.response_to_box("Accept", ws, rdb)
-                await self.update_box(msg, rdb)
-                await self.mysql_process_on_msg(msg)
-                self.logger.info("Update box from %s on EXCHANGE" % self.connect_id)
+            self.connect_id = msg["ID"]
+            try:
+                await rdb.hmset_dict(self._rk("EXCHANGE", self.connect_id), msg)
+            except:
+                self.logger.exception("msg is not valid dictionary")
+            response = await self.get_own_info_dict()
+            response["MESSAGE"] = "ACCEPTED"
+            await self.ws_send(response, ws)
+            await self.update_box(msg, rdb)
+            await self.mysql_process_on_msg(msg)
+            self.logger.info("Update box from %s on EXCHANGE" % self.connect_id)
         return True
 
     @staticmethod
@@ -196,12 +229,6 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
         mysql_update_box(msg['ID'],
                          msg['IP'],
                          msg['PORT'])
-
-    async def response_to_box(self, response_msg, ws, rdb):
-        response = await rdb.hgetall(self._rk("OWN_INFO"))
-        response["COMMAND"] = "EXCHANGE"
-        response["MESSAGE"] = response_msg
-        await self.ws_send(response, ws)
 
     async def update_box(self, msg, redis):
         """ Processing box's message by classifying it to proper set """

@@ -35,32 +35,39 @@ class BaseAsyncServer(object):
     - register_on_startup()
     - register_on_cleanup
     """
+
     def __init__(self, id,
                  ip,
                  port,
                  loop=None,
                  redis_address=("127.0.0.1", 6379),
                  redis_db=0,
-                 redis_minsize=1,
-                 redis_maxsize=5,
+                 redis_minsize=5,
+                 redis_maxsize=10,
                  log_level=logging.DEBUG,
                  **kwargs):
         """Constructor.  May be extended, do not override."""
         self.id = id
-        self.ip = ip
-        self.port = port
+        self.app = web.Application()
+        self.ip = self.app["IP"] = ip
+        self.port = self.app["PORT"] = port
         self._loop = loop if loop else uvloop.new_event_loop()
         asyncio.set_event_loop(self._loop)
         self._rk = RedisKeyWrapper(self.id)
         self.conf = {
             "redis_address": redis_address,
             "redis_db": redis_db,
+            "redis_minsize": redis_minsize,
+            "redis_maxsize": redis_maxsize,
         }
-        self._loop.run_until_complete(asyncio.gather(self.initialize(redis_address=redis_address,
-                                                                     redis_db=redis_db,
-                                                                     redis_minsize=redis_minsize,
-                                                                     redis_maxsize=redis_maxsize,
-                                                                     **kwargs)))
+        self.app["conf"] = self.conf
+        self.app['ID'] = self.id
+        self.app["websockets"] = []
+        self.setup_routes()
+        self.setup_middlewares()
+        self.app.on_startup.append(self.register_on_startup)
+        self.app.on_cleanup.append(self.register_on_cleanup)
+        self.rdp = None
 
     def __unicode__(self):
         return self.id
@@ -69,26 +76,28 @@ class BaseAsyncServer(object):
         """ Called when instance is about to be destroyed. """
         pass
 
-    async def initialize(self, **kw):
-        """ Initialization, called in __init__ """
-        self.app = web.Application(loop=self._loop)
-        self.rdp = await aioredis.create_pool(kw["redis_address"],
-                                              db=kw["redis_db"],
-                                              minsize=kw["redis_minsize"],
-                                              maxsize=kw["redis_minsize"],
-                                              encoding="utf-8")
-        self.app['redis_pool'] = self.rdp
-        self.app["conf"] = self.conf
-        self.app['ID'] = self.id
-        self.app["websockets"] = []
-        self.setup_routes()
-        self.setup_middlewares()
-        self.app.on_startup.append(self.register_on_startup)
-        self.app.on_cleanup.append(self.register_on_cleanup)
+    def base_url(self, with_scheme=False):
+        if with_scheme:
+            return 'http://{}:{}/dandelion/{}/'.format(self.ip,
+                                                       self.port,
+                                                       self.id)
+        else:
+            return '/dandelion/{}/'.format(self.id)
+
+    def ws_url(self, with_scheme=False):
+        return self.base_url(with_scheme=with_scheme) + 'ws/'
 
     @property
     def loop(self):
         return self._loop
+
+    async def setup_aioredis(self):
+        self.rdp = await aioredis.create_pool(self.conf["redis_address"],
+                                              db=self.conf["redis_db"],
+                                              minsize=self.conf["redis_minsize"],
+                                              maxsize=self.conf["redis_minsize"],
+                                              encoding="utf-8")
+        self.app['redis_pool'] = self.rdp
 
     def setup_routes(self, **kwargs):
         """ Set up routes to handle requests from client"""
@@ -104,23 +113,20 @@ class BaseAsyncServer(object):
         - If other tasks would like to run along with server on the loop, you
           should ensure_future before calling serve_forever
         """
-        try:
-            ROOT_DIR = os.environ["ROOT_DIR"]
-        except KeyError:
-            raise KeyError("ROOT_DIR is not defined.")
         web.run_app(self.app,
                     host=self.ip,
-                    port=self.port
+                    port=self.port,
+                    loop=self.loop
                     )
 
+    async def register_on_startup(self, app):
+        await self.setup_aioredis()
+
     async def register_on_cleanup(self, app):
+        for ws in app['websockets']:
+            await ws.close()
         self.rdp.close()
         await self.rdp.wait_closed()
-        for ws in app['websockets']:
-            ws.close()
-
-    async def register_on_startup(self, app):
-        pass
 
 
 class EntranceAsyncServer(BaseAsyncServer):
@@ -156,11 +162,12 @@ class EntranceAsyncServer(BaseAsyncServer):
     def setup_routes(self):
         setup_entrance_routes(self.app)
 
-    def register_on_startup(self, app):
+    async def register_on_startup(self, app):
+        await super(EntranceAsyncServer, self).register_on_startup(app)
         app["background_process"] = app.loop.create_task(self.background_process())
 
     async def register_on_cleanup(self, app):
-        super().register_on_cleanup(app=app)
+        await super().register_on_cleanup(app=app)
         self.app["background_process"].cancel()
 
     async def background_process(self):
@@ -177,7 +184,7 @@ class EntranceAsyncServer(BaseAsyncServer):
     async def update_entrance_info(self, rdb):
         own_info = {
             "ID": self.id,
-            "TYPE": "EXTRANCE",
+            "TYPE": "ENTRANCE",
             "IP": self.ip,
             "PORT": self.port,
         }
@@ -198,8 +205,8 @@ class BoxAsyncServer(BaseAsyncServer):
                  loop=None,
                  redis_address=("localhost", 6379),
                  redis_db=0,
-                 redis_minsize=1,
-                 redis_maxsize=5,
+                 redis_minsize=5,
+                 redis_maxsize=10,
                  log_level=logging.DEBUG,
                  base_directory="/tmp",
                  **kwargs):
@@ -223,3 +230,35 @@ class BoxAsyncServer(BaseAsyncServer):
 
     def setup_routes(self):
         setup_box_routes(self.app)
+
+    async def delete_expire_files(self):
+        self.logger.info("---Start delete_expire_files process---")
+        while True:
+            try:
+                with await self.rdp as rdb:
+                    expire_files = await rdb.zrangebyscore(self._rk("EXPIRE_FILES"),
+                                                           min=0,
+                                                           max=int(time.time()))
+                    if len(expire_files):
+                        await rdb.zrem(self._rk("EXPIRE_FILES"), *expire_files)
+                    else:
+                        await asyncio.sleep(10)
+                        continue
+                for file in expire_files:
+                    try:
+                        os.remove(file)
+                        self.logger.debug("Delete %s." % file)
+                    except:
+                        self.logger.warning("file %s is not a file or dir." % file)
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                break
+
+    async def register_on_startup(self, app):
+        await super(BoxAsyncServer, self).register_on_startup(app)
+        app["expire_files_process"] = asyncio.ensure_future(self.delete_expire_files())
+
+    async def register_on_cleanup(self, app):
+        self.app["expire_files_process"].cancel()
+        asyncio.wait_for(self.app["expire_files_process"], None)
+        await super().register_on_cleanup(app=app)

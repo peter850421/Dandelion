@@ -76,7 +76,7 @@ tail -f dandelion.log
     - ORG
     - LOC
 
-##### Entrance to Box
+##### Publisher to Box
 - ID
 - IP
 - PORT
