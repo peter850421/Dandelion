@@ -1,4 +1,11 @@
 # Dandelion
+![alt text](https://img.shields.io/badge/aiohttp-2.2.0-orange.svg)
+![alt text](https://img.shields.io/badge/python-3.6-blue.svg)
+![alt text](https://img.shields.io/badge/coverage-46%25-green.svg)
+![alt text](https://img.shields.io/dub/l/vibe-d.svg)
+
+
+
 
 ## Abstract
 Dandelion platform aims to optimize bandwidth usage by re-allocating idle bandwidth for other purposes, 
@@ -8,7 +15,7 @@ Boxes are microprocessors distributed among household that collect any unused ba
 system information of each box is recorded onto the entrance server's database. All recorded boxes periodically
 send pertinent information, such as measured bandwidth, available memory space and GEOIP info, etc., to the 
 entrance server. If the entrance server does not receive any updates from a box after some given time, the 
-server will remove that box from its database.Each publisher keeps track of a list of box information from 
+server will remove that box from its database. Each publisher keeps track of a list of box information from 
 the entrance server. Users access the collected bandwidth through publishers. Users first push the file to 
 the publisher. Then the publisher picks an appropriate box from its list and send the file to that box. If 
 users would like to know where the file goes, they could make queries to the publisher. 
@@ -19,7 +26,7 @@ we might want to use udp or quic instead of http in exchanging information progr
 connections. Feel free to folk to make this project better.
 
 Update 2017/4/18
-Zeromq has been removed. Use weebsocket instead.
+Zeromq has been removed. Use websocket instead.
 
 ## Graph
 ![Screenshot](screenshot.png)
@@ -27,35 +34,49 @@ Zeromq has been removed. Use weebsocket instead.
 ## Before Start
 ##### Make sure that python's version is higher than 3.5 and run command below
 ```
-sudo pip3 install -r requirements
+sudo pip3 install -r requirements.txt
 python3 setup.py install
 ```
+##### Other required Installation (without using docker)
+- Redis
+- Nginx (as a proxy server)
 
 ## Get started
-##### Decide which file to run depend on what your computer should be among three characters (Entrance server, box and publisher)
+- Duplicate the config.yaml.example file and rename it to config.yaml. Please configure the settings in the file properly according to your character (Entrance server, box and publisher).
+
+- Run
 ```
 python3 run_box.py
 python3 run_entrance.py
 python3 run_publisher.py
 ```
-##### We recommend to use linux screen to run the program for convenience. However, you are able to run the program by
-##### adding & at the end of the command above . You could inspect the program by dandelion.log, which will be created automatically
+
+- You can inspect the program in dandelion.log
 ```
 tail -f dandelion.log
 ```
 
+- You can also fire up by docker, which is much easier.
+```
+sudo docker-compose -f <compose-filename> build
+sudo docker-compose -f <compose-filename> up 
+```
+
+## Testing
+##### Run all test cases
+```
+python3 -m unittest
+```
+##### Coverage
+```
+coverage run -m unittest
+coverage report
+```
 
 ## Developer Document
 ### Point to Point Exchange Info format
-##### Entrance to Box
-- ID
-- IP
-- PORT
-- COMMAND: EXCHANGE
-- TYPE: Entrance
 
-
-##### Box to Entrance
+##### Box to Entrance (EXCHANGE REQUEST)
 - ID
 - IP
 - PORT
@@ -75,17 +96,15 @@ tail -f dandelion.log
     - REGION
     - ORG
     - LOC
-
-##### Publisher to Box
+    
+##### Entrance to Box (EXCHANGE RESPONSE)
 - ID
 - IP
 - PORT
 - COMMAND: EXCHANGE
-- TYPE: Publisher
-- ENTRANCE_URLS (List)
+- TYPE: Entrance
 
-
-##### Publisher to Entrance
+##### Publisher to Entrance (SEARCH REQUEST)
 - ID
 - IP
 - PORT
@@ -100,7 +119,7 @@ tail -f dandelion.log
     - ORG
     - LOC
 
-##### Entrance to Publisher
+##### Entrance to Publisher (SEARCH RESPONSE)
 - ID
 - IP
 - PORT
@@ -113,24 +132,32 @@ tail -f dandelion.log
 - ENTRANCE_URL
     - {Entrance URL}
 
-##### Publisher to Box (IN BINARY)
-###### SEARCHING
+##### Publisher to Box 
+###### SEARCHING (PUBLISH REQUEST)
 - ID
 - IP
 - PORT
 - COMMAND: PUBLISH
 - TYPE: PUBLISHER
 
+###### SEARCHING (PUBLISH RESPONSE)
+- ID
+- IP
+- PORT
+- COMMAND: PUBLISH
+- TYPE: BOX
+- MESSAGE: "ACCEPTED" or ERROR: error message
 
-###### TRANSFER FILES
+
+###### TRANSFER FILES (BINARY REQUEST)
 - Format: b'<Dandelion>'+ (BINARY HEADERS IN JSON) + b'</Dandelion>' + file's content
 - HEADERS
-    - ID
-    - IP
-    - PORT
-    - TYPE: PUBLISHER
     - FILE_PATH
-    
+    - TTL
+
+###### TRANSFER FILES (BINARY RESPONSE)
+None
+
 
 ## Box
 ##### ID
@@ -166,30 +193,5 @@ tail -f dandelion.log
 - {ID}:EXCHANGE:<box_id>: Hash that contains exchange messages from boxes
 - {ID}:OWN_INFO (hash)
 
-```
-server {
-        listen 8000;
-
-
-        location / {
-            root /tmp;
-            allow all;
-            add_header Cache-Control no-cache;
-            add_header 'Access-Control-Allow-Origin' '*';
-            add_header 'Access-Control-Allow-Credentials' 'true';
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
-            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type';
-
-        }
-
-        location /dandelion {
-            proxy_pass https://127.0.0.1:8080/dandelion;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_read_timeout 1d;
-        }
-}
-```
-
-
-
+## License
+Released under [the MIT License](https://github.com/ktshen/Dandelion/blob/master/License)
