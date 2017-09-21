@@ -17,7 +17,7 @@ def setup_box_routes(app):
 
 def setup_entrance_routes(app):
     id = app["ID"]
-    wrap = URLWrapper("/dandelion")
+    wrap = URLWrapper("/dandelion/{}".format(id))
     app.router.add_route('*', wrap('/'), index)
     app.router.add_route('*',
                          wrap("ws"),

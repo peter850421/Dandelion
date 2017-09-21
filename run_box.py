@@ -28,6 +28,7 @@ if __name__ == '__main__':
               server_ip=config["BOX_SERVER_IP"],
               client_ip=None,
               port=config["BOX_PORT"],
+              proxy_port=config.conf["BOX_SERVER_PROXY_PORT"],
               entrance_urls=config["ENTRANCE_URLS"],
               redis_address=redis_address,
               redis_db=config["DB"],

@@ -4,7 +4,6 @@ import os
 from dandelion import Publisher
 
 
-
 if __name__ == '__main__':
     ROOT_DIR = os.environ["ROOT_DIR"] = os.path.dirname(__file__)
     id = ''
@@ -25,7 +24,6 @@ if __name__ == '__main__':
     redis_address = (config["REDIS_HOST"], config["REDIS_PORT"])
     publisher = Publisher(id,
                           ip=config["PUBLISHER_IP"],
-                          port=config["PUBLISHER_PORT"],
                           entrance_urls=config["ENTRANCE_URLS"],
                           min_http_peers=config["MIN_HTTP_PEERS"],
                           redis_address=redis_address,

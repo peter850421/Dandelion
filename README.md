@@ -107,7 +107,6 @@ coverage report
 ##### Publisher to Entrance (SEARCH REQUEST)
 - ID
 - IP
-- PORT
 - COMMAND: SEARCH
 - TYPE: PUBLISHER
 - GEOIP
@@ -136,7 +135,6 @@ coverage report
 ###### SEARCHING (PUBLISH REQUEST)
 - ID
 - IP
-- PORT
 - COMMAND: PUBLISH
 - TYPE: PUBLISHER
 

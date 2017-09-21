@@ -13,6 +13,9 @@ from .logger import get_logger
 if sys.version_info < (3, 5):
     raise Exception("must use python 3.5 or greater")
 
+# Use uvloop as default
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
 
 class BaseAsyncServer(object):
     """
@@ -22,7 +25,7 @@ class BaseAsyncServer(object):
     http://aiohttp.readthedocs.io/en/stable/web_reference.html#aiohttp.web.Server
 
     - Box server and Service's (which distributes data among boxes) server should
-    inherit this class and override methods for own process purposes
+    inherit this class and override methods for own purposes
 
     - Methods for the caller:
     - __init__(server_address, RequestHandlerClass)
@@ -34,11 +37,20 @@ class BaseAsyncServer(object):
     - setup_middlewares()
     - register_on_startup()
     - register_on_cleanup
+
+    Parameters:
+    :param id: An unique ID for this server
+    :param ip: IP that server will listen to
+    :param port: PORT on local machine that server binds to
+    :param proxy_port: If nginx is used as a proxy server, then the proxy port is the port
+                        that nginx listen to. It will proxy the coming request to param port.
+                        This is recommended, because nginx can set up https.
     """
 
     def __init__(self, id,
                  ip,
                  port,
+                 proxy_port=None,
                  loop=None,
                  redis_address=("127.0.0.1", 6379),
                  redis_db=0,
@@ -51,7 +63,8 @@ class BaseAsyncServer(object):
         self.app = web.Application()
         self.ip = self.app["IP"] = ip
         self.port = self.app["PORT"] = port
-        self._loop = loop if loop else uvloop.new_event_loop()
+        self.proxy_port = self.app["PROXY_PORT"] = proxy_port
+        self._loop = loop if loop else asyncio.get_event_loop()
         asyncio.set_event_loop(self._loop)
         self._rk = RedisKeyWrapper(self.id)
         self.conf = {
@@ -78,9 +91,15 @@ class BaseAsyncServer(object):
 
     def base_url(self, with_scheme=False):
         if with_scheme:
-            return 'http://{}:{}/dandelion/{}/'.format(self.ip,
-                                                       self.port,
-                                                       self.id)
+            # If proxy_port is not None, then assume that the proxy_port has opened up https
+            if self.proxy_port:
+                return 'https://{}:{}/dandelion/{}/'.format(self.ip,
+                                                            self.proxy_port,
+                                                            self.id)
+            else:
+                return 'http://{}:{}/dandelion/{}/'.format(self.ip,
+                                                           self.port,
+                                                           self.id)
         else:
             return '/dandelion/{}/'.format(self.id)
 
@@ -133,6 +152,7 @@ class EntranceAsyncServer(BaseAsyncServer):
     def __init__(self, id,
                  ip,
                  port,
+                 proxy_port=None,
                  loop=None,
                  redis_address=("127.0.0.1", 6379),
                  redis_db=0,
@@ -142,19 +162,20 @@ class EntranceAsyncServer(BaseAsyncServer):
                  amount_of_boxes_per_request=20,
                  log_level=logging.DEBUG,
                  **kwargs):
+        self.logger = get_logger("Entrance", level=log_level)
         if "entrance-" not in id:
             self.logger.warning("ID does not contain entrance-")
             raise ValueError
         super().__init__(id,
                          ip=ip,
                          port=port,
+                         proxy_port=proxy_port,
                          loop=loop,
                          redis_address=redis_address,
                          redis_db=redis_db,
                          redis_minsize=redis_minsize,
                          redis_maxsize=redis_maxsize,
                          **kwargs)
-        self.logger = get_logger("Entrance", level=log_level)
         self.app["logger"] = self.logger
         self.conf["expire_box_time"] = expire_box_time
         self.conf["amount_of_boxes_per_request"] = amount_of_boxes_per_request
@@ -164,29 +185,33 @@ class EntranceAsyncServer(BaseAsyncServer):
 
     async def register_on_startup(self, app):
         await super(EntranceAsyncServer, self).register_on_startup(app)
-        app["background_process"] = app.loop.create_task(self.background_process())
+        app["background_task"] = self.loop.create_task(self.background_task())
 
     async def register_on_cleanup(self, app):
         await super().register_on_cleanup(app=app)
-        self.app["background_process"].cancel()
+        self.app["background_task"].cancel()
+        await self.app["background_task"]
 
-    async def background_process(self):
+    async def background_task(self):
         """
         - Run in background, update entrance info and expire outdated boxes periodically
         """
         self.logger.info("Background task starts...")
         while True:
-            with await self.rdp as rdb:
-                await self.update_entrance_info(rdb)
-                await self.expire_outdated_boxes(rdb)
-            await asyncio.sleep(5)
+            try:
+                with await self.rdp as rdb:
+                    await self.update_entrance_info(rdb)
+                    await self.expire_outdated_boxes(rdb)
+                await asyncio.sleep(5)
+            except asyncio.CancelledError:
+                break
 
     async def update_entrance_info(self, rdb):
         own_info = {
             "ID": self.id,
             "TYPE": "ENTRANCE",
             "IP": self.ip,
-            "PORT": self.port,
+            "PORT": self.port if not self.proxy_port else self.proxy_port,
         }
         await rdb.hmset_dict(self._rk("OWN_INFO"), own_info)
 
@@ -202,6 +227,7 @@ class BoxAsyncServer(BaseAsyncServer):
     def __init__(self, id,
                  ip,
                  port,
+                 proxy_port=None,
                  loop=None,
                  redis_address=("localhost", 6379),
                  redis_db=0,
@@ -209,14 +235,16 @@ class BoxAsyncServer(BaseAsyncServer):
                  redis_maxsize=10,
                  log_level=logging.DEBUG,
                  base_directory="/tmp",
+                 expire_files_freq=10,
                  **kwargs):
+        self.logger = get_logger("Box-Server", level=log_level)
         if "box-" not in id:
             self.logger.warning("ID does not contain box-")
             raise ValueError
-
         super().__init__(id,
                          ip=ip,
                          port=port,
+                         proxy_port=proxy_port,
                          loop=loop,
                          redis_address=redis_address,
                          redis_db=redis_db,
@@ -224,15 +252,15 @@ class BoxAsyncServer(BaseAsyncServer):
                          redis_maxsize=redis_maxsize,
                          log_level=log_level,
                          **kwargs)
-        self.logger = get_logger("Box-Server", level=log_level)
         self.app["logger"] = self.logger
         self.conf["base_directory"] = base_directory
+        self.expire_files_freq = expire_files_freq
 
     def setup_routes(self):
         setup_box_routes(self.app)
 
     async def delete_expire_files(self):
-        self.logger.info("---Start delete_expire_files process---")
+        self.logger.info("---Start delete_expire_files task---")
         while True:
             try:
                 with await self.rdp as rdb:
@@ -242,23 +270,23 @@ class BoxAsyncServer(BaseAsyncServer):
                     if len(expire_files):
                         await rdb.zrem(self._rk("EXPIRE_FILES"), *expire_files)
                     else:
-                        await asyncio.sleep(10)
+                        await asyncio.sleep(self.expire_files_freq)
                         continue
                 for file in expire_files:
                     try:
                         os.remove(file)
                         self.logger.debug("Delete %s." % file)
                     except:
-                        self.logger.warning("file %s is not a file or dir." % file)
-                await asyncio.sleep(10)
+                        self.logger.warning("%s is not a file" % file)
+                await asyncio.sleep(self.expire_files_freq)
             except asyncio.CancelledError:
                 break
 
     async def register_on_startup(self, app):
         await super(BoxAsyncServer, self).register_on_startup(app)
-        app["expire_files_process"] = asyncio.ensure_future(self.delete_expire_files())
+        app["expire_files_task"] = asyncio.ensure_future(self.delete_expire_files())
 
     async def register_on_cleanup(self, app):
-        self.app["expire_files_process"].cancel()
-        asyncio.wait_for(self.app["expire_files_process"], None)
+        self.app["expire_files_task"].cancel()
+        await self.app["expire_files_task"]
         await super().register_on_cleanup(app=app)

@@ -28,5 +28,6 @@ if __name__ == '__main__':
                         redis_maxsize=config["ENTRANCE_REDIS_MAXSIZE"],
                         expire_box_time=config["ENTRANCE_EXPIRE_BOX_TIME"],
                         amount_of_boxes_per_request=config["AMOUNT_OF_BOXES_PER_REQUEST"],
+                        proxy_port=config["ENTRANCE_SERVER_PROXY_PORT"],
                         )
     entrance.serve_forever()

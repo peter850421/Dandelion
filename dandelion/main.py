@@ -39,6 +39,7 @@ class Box:
         self.server = BoxAsyncServer(id=self.conf["id"],
                                      ip=self.conf["server_ip"],
                                      port=self.conf["port"],
+                                     proxy_port=self.conf["proxy_port"],
                                      redis_address=self.conf["redis_address"],
                                      redis_db=self.conf["redis_db"],
                                      redis_minsize=self.conf["server_redis_minsize"],
@@ -49,18 +50,16 @@ class Box:
         self.client_process = Process(target=self._start_client)
 
     def _start_client(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         client = BoxAsyncClient(id=self.conf["id"],
                                 port=self.conf["port"],
                                 entrance_urls=self.conf["entrance_urls"],
                                 ip=self.conf["client_ip"],
-                                loop=loop,
                                 redis_address=self.conf["redis_address"],
                                 redis_db=self.conf["redis_db"],
                                 redis_minsize=self.conf["client_redis_minsize"],
                                 redis_maxsize=self.conf["client_redis_maxsize"],
                                 ping_entrance_freq=self.conf["ping_entrance_freq"],
+                                proxy_port=self.conf["proxy_port"],
                                 log_level=self.conf["log_level"],
                                 )
         client.start()

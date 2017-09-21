@@ -8,7 +8,6 @@ import time
 from aiohttp import ClientSession, WSMsgType, TCPConnector
 import aiohttp
 import uvloop
-import ssl
 import redis
 from .systeminfo import CPU_loading_info, Memory_info, Loadaverage_info, Disk_info, CPU_number,CPU_Hz
 from .utils import RedisKeyWrapper, URLWrapper
@@ -21,22 +20,24 @@ from .logger import get_logger
 if sys.version_info < (3, 5):
     raise Exception("must use python 3.5 or greater")
 
+# Use uvloop as default
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
 
 class BaseAsyncClient(object):
-    def __init__(self, id, port,
+    def __init__(self, id,
                  entrance_urls=[],
                  ip=None,
                  loop=None,
                  redis_address=("127.0.0.1", 6379),
                  redis_db=0,
-                 redis_minsize=1,
-                 redis_maxsize=5,
+                 redis_minsize=5,
+                 redis_maxsize=10,
                  ping_entrance_freq=5,
                  log_level=logging.DEBUG, **kwargs):
         self.id = id
         self.ip = ip
-        self.port = port
-        self._loop = loop if loop else uvloop.new_event_loop()
+        self._loop = loop if loop else asyncio.get_event_loop()
         asyncio.set_event_loop(self._loop)
         self._queue_set = {}
         self.entrance_urls = set(entrance_urls)
@@ -50,9 +51,7 @@ class BaseAsyncClient(object):
             "redis_minsize": redis_minsize,
             "redis_maxsize": redis_maxsize
         }
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        conn = TCPConnector(ssl_context=ssl_context)
-        self.session = ClientSession(connector=conn)
+        self.session = ClientSession()
         self.logger = get_logger("AsyncClient", level=log_level)
 
     @property
@@ -75,10 +74,12 @@ class BaseAsyncClient(object):
             self._loop.run_forever()
         except KeyboardInterrupt:
             self.logger.warning("KeyboardInterrupt.")
-        self._loop.run_until_complete(asyncio.gather(self.cleanup()))
-        run_task.cancel()
-        self._loop.close()
-        self.logger.info("{0} Async Client Loop Stop!".format(self.id))
+            run_task.cancel()
+            self._loop.run_until_complete(run_task)
+        finally:
+            self._loop.run_until_complete(self.cleanup())
+            self._loop.close()
+            self.logger.info("{0} Async Client Loop Stop!".format(self.id))
 
     async def run(self):
         """Override this method"""
@@ -139,14 +140,6 @@ class BaseAsyncClient(object):
         for ws in self._entrance_ws.keys():
             await self._entrance_ws[ws].close()
 
-    async def register_on_startup(self, app):
-        app["client_process"] = app.loop.create_task(self.run())
-
-    async def register_on_cleanup(self, app):
-        await self.cleanup()
-        app["client_process"].cancel()
-        await app["client_process"]
-
     async def process_received_message(self, ws, url, once=False):
         async for msg in ws:
             self.logger.debug("RECEIVE MSG %s, FROM URL: %s." % (str(msg), url))
@@ -166,18 +159,18 @@ class BaseAsyncClient(object):
 class BoxAsyncClient(BaseAsyncClient):
 
     def __init__(self, id, port,
-                 entrance_urls=None,
+                 entrance_urls=[],
                  ip=None,
                  loop=None,
                  redis_address=("localhost", 6379),
                  redis_db=0,
-                 redis_minsize=1,
-                 redis_maxsize=5,
+                 redis_minsize=5,
+                 redis_maxsize=10,
                  ping_entrance_freq=10,
-                 proxy_port=8000,
+                 proxy_port=None,
                  log_level=logging.DEBUG, **kwargs):
         """
-        :param port: Where server is listening to
+        :param port: Where Box server is listening to
         :param ip: Set ip to None if it is not static
         :param proxy_port: We assume that proxy server is used. This should be configured properly,
                            since others will access this box through this port.
@@ -185,7 +178,7 @@ class BoxAsyncClient(BaseAsyncClient):
         if "box-" not in id:
             self.logger.warning("ID does not contain box-")
             raise ValueError
-        super().__init__(id, port, entrance_urls,
+        super().__init__(id, entrance_urls,
                          ip=ip,
                          loop=loop,
                          redis_address=redis_address,
@@ -194,9 +187,8 @@ class BoxAsyncClient(BaseAsyncClient):
                          redis_maxsize=redis_maxsize,
                          ping_entrance_freq=ping_entrance_freq)
         self.logger = get_logger("Box-Client", level=log_level)
-        self.conf.update({
-            "proxy_port": proxy_port
-        })
+        self.port = port
+        self.proxy_port = self.conf["proxy_port"] = proxy_port
 
     async def run(self):
         """
@@ -206,9 +198,12 @@ class BoxAsyncClient(BaseAsyncClient):
         :return:
         """
         while True:
-            await self.update_self_exchange()
-            await self.ping_entrances()
-            await asyncio.sleep(self.conf["ping_entrance_freq"])
+            try:
+                await self.update_self_exchange()
+                await self.ping_entrances()
+                await asyncio.sleep(self.conf["ping_entrance_freq"])
+            except asyncio.CancelledError:
+                break
 
     async def ping_entrances(self):
         for url in self.entrance_urls:
@@ -239,14 +234,14 @@ class BoxAsyncClient(BaseAsyncClient):
         ip = await get_ip()
         if ip is None:
             raise ValueError("No available sites to get box's ip")
-        connect_url = URLWrapper("http://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
+        connect_url = URLWrapper("https://"+ip+":"+str(self.conf["proxy_port"])+"/")("dandelion", self.id, "ws")
         CPU = CPU_loading_info()
         Load = Loadaverage_info()
         Memory = Memory_info()
         Disk = Disk_info()
         ex_dict = {"ID"            : self.id,
                    "IP"            : ip,
-                   "PORT"          : self.conf["proxy_port"],
+                   "PORT"          : self.port if not self.conf["proxy_port"] else self.conf["proxy_port"],
                    "TYPE"          : "BOX",
                    "COMMAND"       : "EXCHANGE",
                    "CONNECT_WS"    : connect_url,
@@ -267,7 +262,6 @@ class BoxAsyncClient(BaseAsyncClient):
                    "DISK-TOTAL"    : Disk[0],
                    "DISK-AVAIL"    : Disk[1]
                    }
-
         with await self.rdp as rdb:
             await rdb.hmset_dict(self._rk("SELF_EXCHANGE"), ex_dict)
         self.logger.debug("UPDATE SELF EXCHANGE %s" % str(ex_dict))
@@ -280,7 +274,7 @@ class BoxAsyncClient(BaseAsyncClient):
 
 
 class PublisherAsyncClient(BaseAsyncClient):
-    def __init__(self, id, port,
+    def __init__(self, id,
                  entrance_urls=[],
                  ip=None,
                  min_http_peers=10,
@@ -294,7 +288,7 @@ class PublisherAsyncClient(BaseAsyncClient):
         if "publisher-" not in id:
             self.logger.warning("ID does not contain publisher-")
             raise ValueError
-        super().__init__(id, port,
+        super().__init__(id,
                          entrance_urls=[],
                          ip=ip,
                          loop=loop,
@@ -313,20 +307,28 @@ class PublisherAsyncClient(BaseAsyncClient):
     async def run(self):
         if self.ip is None:
             self.ip = await get_ip()
-        asyncio.ensure_future(self.collecting())
-        asyncio.ensure_future(self.publish())
+        collect_task = asyncio.ensure_future(self.collecting())
+        publish_task = asyncio.ensure_future(self.publish())
         while True:
-            asyncio.ensure_future(self.maintain_peers())
-            await asyncio.sleep(3)
+            try:
+                asyncio.ensure_future(self.maintain_peers())
+                await asyncio.sleep(3)
+            except asyncio.CancelledError:
+                collect_task.cancel()
+                publish_task.cancel()
+                break
 
     async def collecting(self):
         while True:
-            for url in self.entrance_urls:
-                if url not in self._entrance_ws.keys():
-                    # Create key first, in case that duplicate socket has created
-                    self._entrance_ws[url] = None
-                    asyncio.ensure_future(self.connect_entrance(url))
-            await asyncio.sleep(self.conf["ping_entrance_freq"])
+            try:
+                for url in self.entrance_urls:
+                    if url not in self._entrance_ws.keys():
+                        # Create key first, in case that duplicate socket has created
+                        self._entrance_ws[url] = None
+                        asyncio.ensure_future(self.connect_entrance(url))
+                await asyncio.sleep(self.conf["ping_entrance_freq"])
+            except asyncio.CancelledError:
+                break
 
     async def send_entrance(self, ws):
         """
@@ -335,7 +337,6 @@ class PublisherAsyncClient(BaseAsyncClient):
         request = {
             "ID": self.id,
             "IP": self.ip,
-            "PORT": self.port,
             "TYPE": "PUBLISHER",
             "COMMAND": "SEARCH",
         }
@@ -407,7 +408,6 @@ class PublisherAsyncClient(BaseAsyncClient):
         return {
             "ID": self.id,
             "IP": self.ip,
-            "PORT": self.port,
             "TYPE": "PUBLISHER",
             "COMMAND": "PUBLISH"
         }
@@ -448,40 +448,43 @@ class PublisherAsyncClient(BaseAsyncClient):
         4. Send the file via websocket
         5. Update Redis
         """
-        while True:
-            msg = "Success"
-            with await self.redis_pool as rdb:
-                task_json = (await rdb.blpop(self._rk("FILE", "FILES_SENDING_QUEUE")))[1]
-                task = json.loads(task_json)
-                file_path = task["FILE_PATH"]
-                box, box_ws = await self.pick_box(rdb, timeout=1)
-                if box_ws is None:
-                    self.logger.warning("No available box to send file.")
-                    continue
-            try:
-                infile = open(file_path, "rb")
-                b_hdrs = wrapbh(task)
+        try:
+            while True:
+                msg = "Success"
+                with await self.redis_pool as rdb:
+                    task_json = (await rdb.blpop(self._rk("FILE", "FILES_SENDING_QUEUE")))[1]
+                    task = json.loads(task_json)
+                    file_path = task["FILE_PATH"]
+                    box, box_ws = await self.pick_box(rdb, timeout=1)
+                    if box_ws is None:
+                        self.logger.warning("No available box to send file.")
+                        continue
                 try:
-                    await box_ws.send_bytes(b_hdrs + infile.read())
-                except TypeError:
-                    self.logger.exception("Data is not bytes, bytearray or memoryview.")
-                    msg = "Data is not bytes, bytearray or memoryview."
-                finally:
-                    infile.close()
-                self.logger.debug("Send %s to %s" % (file_path, box))
-            except IOError:
-                self.logger.exception("No such file %s" % file_path)
-                msg = "No such file."
-            save_dict = {
-                "ID": box,
-                "MSG": msg,
-            }
-            save_dict.update(task)
-            with await self.redis_pool as rdb:
-                self.logger.debug("Save SENT FILE %s" % (self._rk("FILE", "PROCESSED_FILES", file_path)))
-                await rdb.hmset_dict(self._rk("FILE", "PROCESSED_FILES", file_path), save_dict)
-                # prevent old information to interferrence new informaion
-                await rdb.expire(self._rk("FILE", "PROCESSED_FILES", file_path),30)
+                    infile = open(file_path, "rb")
+                    b_hdrs = wrapbh(task)
+                    try:
+                        await box_ws.send_bytes(b_hdrs + infile.read())
+                    except TypeError:
+                        self.logger.exception("Data is not bytes, bytearray or memoryview.")
+                        msg = "Data is not bytes, bytearray or memoryview."
+                    finally:
+                        infile.close()
+                    self.logger.debug("Send %s to %s" % (file_path, box))
+                except IOError:
+                    self.logger.exception("No such file %s" % file_path)
+                    msg = "No such file."
+                save_dict = {
+                    "ID": box,
+                    "MSG": msg,
+                }
+                save_dict.update(task)
+                with await self.redis_pool as rdb:
+                    self.logger.debug("Save SENT FILE %s" % (self._rk("FILE", "PROCESSED_FILES", file_path)))
+                    await rdb.hmset_dict(self._rk("FILE", "PROCESSED_FILES", file_path), save_dict)
+                    # prevent old information to interferrence new informaion
+                    await rdb.expire(self._rk("FILE", "PROCESSED_FILES", file_path),30)
+        except asyncio.CancelledError:
+            return
 
     async def pick_box(self, rdb, timeout=1):
         """

@@ -89,7 +89,10 @@ class BaseWebSocketHandler(object):
         keys = ["ID", "IP", "PORT", "TYPE"]
         for k in keys:
             if k not in msg:
-                raise KeyError("No key %s in received msg." % k)
+                if k == "PORT" and msg["TYPE"] == "PUBLISHER":
+                    continue
+                else:
+                    raise KeyError("No key %s in received msg." % k)
             elif not msg[k]:
                 raise ValueError("Value of key %s should not be empty or None" % k)
 
@@ -107,7 +110,7 @@ class BoxWebSocketHandler(BaseWebSocketHandler):
         return {
             "ID": self.id,
             "IP": self.app["IP"],
-            "PORT": self.app["PORT"],
+            "PORT": self.app["PORT"] if not self.app["PROXY_PORT"] else self.app["PROXY_PORT"],
             "TYPE": "BOX"
         }
 
@@ -240,10 +243,7 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
         """Handle SEARCH request from publishers"""
         with await self.rdp as rdb:
             await self.response_to_publisher(msg, ws, rdb)
-            try:
-                self.logger.info("Receive Connection from %s on SEARCH" % msg["ID"])
-            except KeyError:
-                self.logger.exception("No Key ID in message on SEARCH")
+            self.logger.info("Receive Connection from %s on SEARCH" % msg["ID"])
 
     async def response_to_publisher(self, msg, ws, rdb):
         """
