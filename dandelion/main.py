@@ -1,8 +1,11 @@
 import asyncio
+import uvloop
 import logging
-from multiprocessing import Process
+import multiprocessing
 from .httpclient import BoxAsyncClient, PublisherAsyncClient
 from .httpserver import BoxAsyncServer, EntranceAsyncServer
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 class Box:
@@ -17,6 +20,7 @@ class Box:
                  client_redis_minsize=1,
                  client_redis_maxsize=3,
                  ping_entrance_freq=10,
+                 proxy_port=None,
                  log_level=logging.DEBUG,
                  base_directory="/tmp",
                  **kwargs):
@@ -33,21 +37,10 @@ class Box:
             "client_redis_minsize": client_redis_minsize,
             "client_redis_maxsize": client_redis_maxsize,
             "ping_entrance_freq": ping_entrance_freq,
+            "proxy_port": proxy_port,
             "log_level": log_level,
             "base_directory": base_directory,
         }
-        self.server = BoxAsyncServer(id=self.conf["id"],
-                                     ip=self.conf["server_ip"],
-                                     port=self.conf["port"],
-                                     proxy_port=self.conf["proxy_port"],
-                                     redis_address=self.conf["redis_address"],
-                                     redis_db=self.conf["redis_db"],
-                                     redis_minsize=self.conf["server_redis_minsize"],
-                                     redis_maxsize=self.conf["server_redis_maxsize"],
-                                     base_directory=self.conf["base_directory"],
-                                     log_level=self.conf["log_level"],
-                                     )
-        self.client_process = Process(target=self._start_client)
 
     def _start_client(self):
         client = BoxAsyncClient(id=self.conf["id"],
@@ -64,9 +57,28 @@ class Box:
                                 )
         client.start()
 
-    def start(self):
-        self.client_process.start()
+    def _start_server(self):
+        self.server = BoxAsyncServer(id=self.conf["id"],
+                                     ip=self.conf["server_ip"],
+                                     port=self.conf["port"],
+                                     proxy_port=self.conf["proxy_port"],
+                                     redis_address=self.conf["redis_address"],
+                                     redis_db=self.conf["redis_db"],
+                                     redis_minsize=self.conf["server_redis_minsize"],
+                                     redis_maxsize=self.conf["server_redis_maxsize"],
+                                     base_directory=self.conf["base_directory"],
+                                     log_level=self.conf["log_level"],
+                                     )
         self.server.serve_forever()
+
+    def start(self):
+        client_process = multiprocessing.Process(target=self._start_client)
+        try:
+            client_process.start()
+            self._start_server()
+        finally:
+            client_process.terminate()
+            client_process.join()
 
 
 class Publisher(PublisherAsyncClient):

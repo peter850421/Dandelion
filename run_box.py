@@ -23,12 +23,12 @@ if __name__ == '__main__':
     # Load config file
     f = open(os.path.join(ROOT_DIR, "config.yaml"), "r")
     config = yaml.safe_load(f)
-    redis_address = (config["REDIS_HOST"],config["REDIS_PORT"])
+    redis_address = (config["REDIS_HOST"], config["REDIS_PORT"])
     box = Box(id,
               server_ip=config["BOX_SERVER_IP"],
               client_ip=None,
               port=config["BOX_PORT"],
-              proxy_port=config.conf["BOX_SERVER_PROXY_PORT"],
+              proxy_port=config["BOX_SERVER_PROXY_PORT"],
               entrance_urls=config["ENTRANCE_URLS"],
               redis_address=redis_address,
               redis_db=config["DB"],

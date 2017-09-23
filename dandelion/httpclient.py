@@ -37,11 +37,12 @@ class BaseAsyncClient(object):
                  log_level=logging.DEBUG, **kwargs):
         self.id = id
         self.ip = ip
-        self._loop = loop if loop else asyncio.get_event_loop()
+        self._loop = loop if loop else asyncio.new_event_loop()
         asyncio.set_event_loop(self._loop)
         self._queue_set = {}
         self.entrance_urls = set(entrance_urls)
         self._entrance_ws = dict()
+        self._connect_entrance_tasks = dict()
         self._peers_ws = dict()
         self._rk = RedisKeyWrapper(self.id)
         self.conf = {
@@ -51,7 +52,6 @@ class BaseAsyncClient(object):
             "redis_minsize": redis_minsize,
             "redis_maxsize": redis_maxsize
         }
-        self.session = ClientSession()
         self.logger = get_logger("AsyncClient", level=log_level)
 
     @property
@@ -73,7 +73,6 @@ class BaseAsyncClient(object):
             self.logger.info("{0} Async Client Loop Start...".format(self.id))
             self._loop.run_forever()
         except KeyboardInterrupt:
-            self.logger.warning("KeyboardInterrupt.")
             run_task.cancel()
             self._loop.run_until_complete(run_task)
         finally:
@@ -82,7 +81,9 @@ class BaseAsyncClient(object):
             self.logger.info("{0} Async Client Loop Stop!".format(self.id))
 
     async def run(self):
-        """Override this method"""
+        """Override this method
+        Must contain self.session = ClientSession()
+        """
         raise NotImplementedError
 
     async def ping_entrances(self):
@@ -102,10 +103,13 @@ class BaseAsyncClient(object):
                 await self.process_received_message(ws, url, once=True)
         except (aiohttp.WSServerHandshakeError, aiohttp.ClientOSError):
             self.logger.exception("Unable to connect to %s." % url, exc_info=False)
+        except asyncio.CancelledError:
+            return
         except:
             self.logger.exception("Fail in connect_entrance.")
         finally:
             self._entrance_ws.pop(url, None)
+            self._connect_entrance_tasks.pop(url, None)
 
     async def send_entrance(self, ws):
         raise NotImplementedError
@@ -139,6 +143,10 @@ class BaseAsyncClient(object):
         self.session.close()
         for ws in self._entrance_ws.keys():
             await self._entrance_ws[ws].close()
+        tasks = self._connect_entrance_tasks.values()
+        for task in tasks:
+            task.cancel()
+            await task
 
     async def process_received_message(self, ws, url, once=False):
         async for msg in ws:
@@ -197,6 +205,7 @@ class BoxAsyncClient(BaseAsyncClient):
 
         :return:
         """
+        self.session = ClientSession()
         while True:
             try:
                 await self.update_self_exchange()
@@ -208,7 +217,8 @@ class BoxAsyncClient(BaseAsyncClient):
     async def ping_entrances(self):
         for url in self.entrance_urls:
             if url not in self._entrance_ws.keys():
-                asyncio.ensure_future(self.connect_entrance(url))
+                task = asyncio.ensure_future(self.connect_entrance(url))
+                self._connect_entrance_tasks[url] = task
 
     async def on_EXCHANGE(self, msg, ws):
         """
@@ -307,6 +317,7 @@ class PublisherAsyncClient(BaseAsyncClient):
     async def run(self):
         if self.ip is None:
             self.ip = await get_ip()
+        self.session = ClientSession()
         collect_task = asyncio.ensure_future(self.collecting())
         publish_task = asyncio.ensure_future(self.publish())
         while True:
@@ -325,7 +336,8 @@ class PublisherAsyncClient(BaseAsyncClient):
                     if url not in self._entrance_ws.keys():
                         # Create key first, in case that duplicate socket has created
                         self._entrance_ws[url] = None
-                        asyncio.ensure_future(self.connect_entrance(url))
+                        task = asyncio.ensure_future(self.connect_entrance(url))
+                        self._connect_entrance_tasks[url] = task
                 await asyncio.sleep(self.conf["ping_entrance_freq"])
             except asyncio.CancelledError:
                 break
