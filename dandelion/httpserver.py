@@ -2,6 +2,7 @@ import sys
 import asyncio
 import aioredis
 import logging
+import redis
 import os
 import time
 import uvloop
@@ -54,8 +55,8 @@ class BaseAsyncServer(object):
                  loop=None,
                  redis_address=("127.0.0.1", 6379),
                  redis_db=0,
-                 redis_minsize=5,
-                 redis_maxsize=10,
+                 redis_minsize=10,
+                 redis_maxsize=20,
                  log_level=logging.DEBUG,
                  **kwargs):
         """Constructor.  May be extended, do not override."""
@@ -142,6 +143,7 @@ class BaseAsyncServer(object):
         await self.setup_aioredis()
 
     async def register_on_cleanup(self, app):
+        print("CLEANUP")
         for ws in app['websockets']:
             await ws.close()
         self.rdp.close()
@@ -156,11 +158,13 @@ class EntranceAsyncServer(BaseAsyncServer):
                  loop=None,
                  redis_address=("127.0.0.1", 6379),
                  redis_db=0,
-                 redis_minsize=1,
-                 redis_maxsize=5,
+                 redis_minsize=10,
+                 redis_maxsize=20,
                  expire_box_time=120,
                  amount_of_boxes_per_request=20,
+                 background_task_freq=5,
                  log_level=logging.DEBUG,
+                 other_entrances_urls=[],
                  **kwargs):
         self.logger = get_logger("Entrance", level=log_level)
         if "entrance-" not in id:
@@ -179,6 +183,10 @@ class EntranceAsyncServer(BaseAsyncServer):
         self.app["logger"] = self.logger
         self.conf["expire_box_time"] = expire_box_time
         self.conf["amount_of_boxes_per_request"] = amount_of_boxes_per_request
+        # For websockets handlers get_own_info_dict
+        self.app["ENTRANCE_URLS"] = self.ws_url(with_scheme=True)
+        self.background_task_freq = background_task_freq
+        self.store_other_entrances_urls(other_entrances_urls)
 
     def setup_routes(self):
         setup_entrance_routes(self.app)
@@ -192,6 +200,13 @@ class EntranceAsyncServer(BaseAsyncServer):
         self.app["background_task"].cancel()
         await self.app["background_task"]
 
+    def store_other_entrances_urls(self, other_entrance_urls):
+        rdb = redis.StrictRedis(host=self.conf["redis_address"][0],
+                                port=self.conf["redis_address"][1],
+                                db=self.conf["redis_db"],
+                                encoding="utf-8")
+        rdb.sadd(self._rk("ENTRANCE_URLS"), *other_entrance_urls)
+
     async def background_task(self):
         """
         - Run in background, update entrance info and expire outdated boxes periodically
@@ -202,25 +217,22 @@ class EntranceAsyncServer(BaseAsyncServer):
                 with await self.rdp as rdb:
                     await self.update_entrance_info(rdb)
                     await self.expire_outdated_boxes(rdb)
-                await asyncio.sleep(5)
+                await asyncio.sleep(self.background_task_freq)
             except asyncio.CancelledError:
                 break
 
     async def update_entrance_info(self, rdb):
-        own_info = {
-            "ID": self.id,
-            "TYPE": "ENTRANCE",
-            "IP": self.ip,
-            "PORT": self.port if not self.proxy_port else self.proxy_port,
-        }
+        own_info = {"ID": self.id,
+                    "TYPE": "ENTRANCE",
+                    "IP": self.ip,
+                    "PORT": self.port if not self.proxy_port else self.proxy_port}
         await rdb.hmset_dict(self._rk("OWN_INFO"), own_info)
 
     async def expire_outdated_boxes(self, rdb):
         outdated = await rdb.zrangebyscore(self._rk("BOX_SET"), min=0, max=int(time.time()))
-        for i in outdated:
-            await rdb.zrem(self._rk("BOX_SET"), i)
         for box in outdated:
-            rdb.delete(self._rk("EXCHANGE", box))
+            await rdb.zrem(self._rk("BOX_SET"), box)
+            await rdb.delete(self._rk("EXCHANGE", box))
 
 
 class BoxAsyncServer(BaseAsyncServer):

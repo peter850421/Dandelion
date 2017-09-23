@@ -29,5 +29,6 @@ if __name__ == '__main__':
                         expire_box_time=config["ENTRANCE_EXPIRE_BOX_TIME"],
                         amount_of_boxes_per_request=config["AMOUNT_OF_BOXES_PER_REQUEST"],
                         proxy_port=config["ENTRANCE_SERVER_PROXY_PORT"],
+                        other_entrances_urls=config["ENTRANCE_URLS"]
                         )
     entrance.serve_forever()

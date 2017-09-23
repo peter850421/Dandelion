@@ -40,6 +40,7 @@ class BaseAsyncClient(object):
         self._loop = loop if loop else asyncio.new_event_loop()
         asyncio.set_event_loop(self._loop)
         self._queue_set = {}
+        # We use set to maintain unique entrance urls
         self.entrance_urls = set(entrance_urls)
         self._entrance_ws = dict()
         self._connect_entrance_tasks = dict()
@@ -140,7 +141,8 @@ class BaseAsyncClient(object):
         self.logger.info("Cleaning up entrance websockets...")
         self.rdp.close()
         await self.rdp.wait_closed()
-        self.session.close()
+        if hasattr(self, "session"):
+            self.session.close()
         for ws in self._entrance_ws.keys():
             await self._entrance_ws[ws].close()
         tasks = self._connect_entrance_tasks.values()
@@ -219,19 +221,21 @@ class BoxAsyncClient(BaseAsyncClient):
             if url not in self._entrance_ws.keys():
                 task = asyncio.ensure_future(self.connect_entrance(url))
                 self._connect_entrance_tasks[url] = task
+        # Clear set after pinging it
+        self.entrance_urls = set()
 
     async def on_EXCHANGE(self, msg, ws):
         """
         Receive EXCHANGE from entrance server
         """
         try:
-            box_id = msg["ID"]
-            with await self.rdp as rdb:
-                await rdb.hmset_dict(self._rk("EXCHANGE", box_id), msg)
+            if msg["MESSAGE"] == "ACCEPTED":
+                if "ENTRANCE_URLS" in msg:
+                    self.entrance_urls.update(msg["ENTRANCE_URLS"])
         except KeyError:
-            self.logger.exception("There's no key 'ID' in msg.")
+            self.logger.exception("Wrong EXCHANGE format from entrance or error occurs.")
         except:
-            self.logger.exception("Fail while storing msg.")
+            pass
 
     async def send_entrance(self, ws):
         with await self.rdp as rdb:
@@ -397,6 +401,9 @@ class PublisherAsyncClient(BaseAsyncClient):
                         await self._peers_ws[box_id]['ws'].close()
                         self._peers_ws.pop(box_id, None)
                         await rdb.zrem(self._rk("BOX_RANKING"), box_id)
+
+
+
                     except:
                         pass
 

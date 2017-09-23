@@ -103,6 +103,8 @@ coverage report
 - PORT
 - COMMAND: EXCHANGE
 - TYPE: Entrance
+- ENTRANCE_URLS
+    - {Entrance URL}
 
 ##### Publisher to Entrance (SEARCH REQUEST)
 - ID
@@ -128,7 +130,7 @@ coverage report
 - BOX_SET (a dict, box_id as key, box's exchange as value)
     - BOX_ID 
         - {BOX_EXCHANGE}
-- ENTRANCE_URL
+- ENTRANCE_URLS
     - {Entrance URL}
 
 ##### Publisher to Box 
@@ -187,6 +189,9 @@ None
 - ws_change/ : handling incoming websocket
 
 ##### Redis KEY Namespace
+- {ID}:ENTRANCE_URLS: Set that contains other_entrance_urls so that if the user desires 
+                      to expand it when the client has started.(Should not include this 
+                      entrance server's url!!)
 - {ID}:BOX_SET: Set that contains all the available box
 - {ID}:EXCHANGE:<box_id>: Hash that contains exchange messages from boxes
 - {ID}:OWN_INFO (hash)

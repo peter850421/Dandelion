@@ -30,7 +30,6 @@ class BaseWebSocketHandler(object):
         self.conf = self.app["conf"]
         self._rk = RedisKeyWrapper(self.id)
         self.logger = self.app["logger"]
-
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         self.app['websockets'].append(ws)
@@ -186,7 +185,12 @@ class BoxWebSocketHandler(BaseWebSocketHandler):
 class EntranceWebSocketHandler(BaseWebSocketHandler):
     async def get_own_info_dict(self):
         with await self.rdp as rdb:
-            return await rdb.hgetall(self._rk("OWN_INFO"))
+            info = await rdb.hgetall(self._rk("OWN_INFO"))
+            info["ENTRANCE_URLS"] = [self.app["ENTRANCE_URLS"]]
+            others_entrance_urls = await rdb.smembers(self._rk("ENTRANCE_URLS"))
+        for i in others_entrance_urls:
+            info["ENTRANCE_URLS"].append(i)
+        return info
 
     async def on_EXCHANGE(self, msg, ws, request):
         """
