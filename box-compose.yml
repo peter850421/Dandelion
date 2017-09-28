@@ -9,6 +9,7 @@ services:
       - redis
     volumes:
       - /tmp:/tmp
+      - /var/log/nginx:/var/log/nginx
     command: ["python", "/app/run_box.py"]
 
   redis:
@@ -18,6 +19,7 @@ services:
     build: ./compose/box/nginx
     volumes:
       - /tmp:/tmp
+      - /var/log/nginx:/var/log/nginx
     ports:
       - "8000:8000"
     depends_on:

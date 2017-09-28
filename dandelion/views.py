@@ -36,7 +36,7 @@ class BaseWebSocketHandler(object):
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
-                    self.logger.debug(" RECEIVE MSG %s" % str(msg))
+                    self.logger.debug("{} RECEIVE MSG {}".format(self.id, str(msg)))
                     breakable = await self._dispatch(msg, ws, request)
                     if breakable:
                         break
@@ -163,12 +163,14 @@ class BoxWebSocketHandler(BaseWebSocketHandler):
                 file_path = file_path[1:]
             file_path = os.path.join(self.base_dir, file_path)
             file_folder = os.path.dirname(file_path)
-            if not os.path.isdir(file_folder):
-                subprocess.check_output(['mkdir', '-p', file_folder])
+            if not os.path.exists(file_folder):
+                os.makedirs(file_folder)
             outfile = open(file_path, "wb")
             outfile.write(data)
             outfile.close()
-            self.logger.info("Receive %s from %s" % (headers["FILE_PATH"], self.connect_id))
+            self.logger.info("{} Receive {} from {}".format(self.id,
+                                                            headers["FILE_PATH"],
+                                                            self.connect_id))
             try:
                 ttl = int(headers["TTL"])
             except KeyError:

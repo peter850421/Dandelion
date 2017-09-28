@@ -97,6 +97,12 @@ coverage report
     - ORG
     - LOC
     
+- {box-id}:TRAFFIC_FLOW:log_id (a dictionary of a log data, could be many of this term with different id but same prefix.)
+    - datetime (e.g. 27/Sep/2017:03:20:10)
+    - url
+    - status (http status)
+    - size
+    
 ##### Entrance to Box (EXCHANGE RESPONSE)
 - ID
 - IP
@@ -167,6 +173,11 @@ None
 - {ID}:EXCHANGE
 - {ID}:SUBSCRIBE:{PUBLISHER ID}
 - {ID}:EXPIRE_FILES  (sorted set)
+- {ID}:TRAFFIC_FLOW:log-<uuid> (hash, storing nginx logging data. Expired after ping_entrance_freq*2)
+    - datetime (e.g. 27/Sep/2017:03:20:10)
+    - url
+    - status (http status)
+    - size
 
 ## Publisher
 ##### ID

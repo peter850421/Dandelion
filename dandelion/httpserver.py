@@ -6,9 +6,10 @@ import redis
 import os
 import time
 import uvloop
+import re
 from aiohttp import web
 from .routes import setup_box_routes, setup_entrance_routes
-from .utils import RedisKeyWrapper
+from .utils import RedisKeyWrapper, create_id
 from .logger import get_logger
 
 if sys.version_info < (3, 5):
@@ -143,7 +144,6 @@ class BaseAsyncServer(object):
         await self.setup_aioredis()
 
     async def register_on_cleanup(self, app):
-        print("CLEANUP")
         for ws in app['websockets']:
             await ws.close()
         self.rdp.close()
@@ -248,6 +248,8 @@ class BoxAsyncServer(BaseAsyncServer):
                  log_level=logging.DEBUG,
                  base_directory="/tmp",
                  expire_files_freq=10,
+                 nginx_access_log='/var/log/nginx/nginx-access.log',
+                 ping_entrance_freq=10,
                  **kwargs):
         self.logger = get_logger("Box-Server", level=log_level)
         if "box-" not in id:
@@ -266,6 +268,8 @@ class BoxAsyncServer(BaseAsyncServer):
                          **kwargs)
         self.app["logger"] = self.logger
         self.conf["base_directory"] = base_directory
+        self.conf["nginx_access_log"] = nginx_access_log
+        self.conf["ping_entrance_freq"] = ping_entrance_freq
         self.expire_files_freq = expire_files_freq
 
     def setup_routes(self):
@@ -289,16 +293,79 @@ class BoxAsyncServer(BaseAsyncServer):
                         os.remove(file)
                         self.logger.debug("Delete %s." % file)
                     except:
-                        self.logger.warning("%s is not a file" % file)
+                        self.logger.exception("%s is not a file" % file)
                 await asyncio.sleep(self.expire_files_freq)
             except asyncio.CancelledError:
                 break
 
+    async def update_nginx_log_file(self):
+        """
+        Read nginx-access.log file to calculate that how much flow does the box server helps
+        publisher to distribute its files.
+        """
+        def extract_log_line(line):
+            match = re.search(r'\[(?P<datetime>.+) \+0000\]-"[A-Z]{3,4} (?P<url>.+) HTTPS?/.+"-(?P<status>\d{3})-(?P<size>\d+)',
+                          line)
+            if match is None:
+                return None
+            else:
+                return {
+                    'datetime': match.group('datetime'),
+                    'url': match.group('url'),
+                    'status': int(match.group('status')),
+                    'size': int(match.group('size'))
+                }
+        if self.proxy_port is None:
+            return
+        file_path = self.conf["nginx_access_log"]
+        # wait for the first log create
+        await asyncio.sleep(5)
+        self.logger.info("-----Start reading %s from nginx" % file_path)
+        infile = None
+        try:
+            while True:
+                if not infile or infile.closed:
+                    try:
+                        infile = open(file_path)
+                    except:
+                        self.logger.exception("Can't open log file %s." % file_path)
+                        await asyncio.sleep(5)
+                        continue
+                where = infile.tell()
+                line = infile.readline()
+                if line:
+                    content = extract_log_line(line)
+                    if content is None:
+                        continue
+                    with await self.rdp as rdb:
+                        log_id = self._rk("TRAFFIC_FLOW", create_id("log"))
+                        await rdb.hmset_dict(log_id, content)
+                        await rdb.expire(log_id, self.conf["ping_entrance_freq"] * 2)
+                else:
+                    if where > 1024 * 1024:
+                        infile.close()
+                        os.remove(file_path)
+                    else:
+                        infile.seek(where)
+                    await asyncio.sleep(5)
+        except asyncio.CancelledError:
+                pass
+        # Delete the log file,  so that it will not start from the old information at the next time
+        try:
+            if not infile and not infile.closed:
+                infile.close()
+            os.remove(file_path)
+        except:
+            pass
+
     async def register_on_startup(self, app):
         await super(BoxAsyncServer, self).register_on_startup(app)
         app["expire_files_task"] = asyncio.ensure_future(self.delete_expire_files())
+        app["update_nginx_log_file_task"] = asyncio.ensure_future(self.update_nginx_log_file())
 
     async def register_on_cleanup(self, app):
-        self.app["expire_files_task"].cancel()
-        await self.app["expire_files_task"]
+        app["expire_files_task"].cancel()
+        await app["expire_files_task"]
+        app["update_nginx_log_file_task"].cancel()
+        await app["update_nginx_log_file_task"]
         await super().register_on_cleanup(app=app)

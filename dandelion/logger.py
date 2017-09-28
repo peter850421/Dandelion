@@ -8,6 +8,7 @@ FORMAT = "%(levelname)s %(name)s %(processName)s %(funcName)s %(asctime)s\n%(mes
 
 DATEFMT = '%Y/%m/%d %H:%M:%S'
 
+
 def get_logger(name, level=logging.DEBUG):
     _formatter = ColoredFormatter(
         COLOR_FORMAT,

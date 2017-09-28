@@ -67,6 +67,7 @@ class Box:
                                      redis_minsize=self.conf["server_redis_minsize"],
                                      redis_maxsize=self.conf["server_redis_maxsize"],
                                      base_directory=self.conf["base_directory"],
+                                     ping_entrance_freq=self.conf["ping_entrance_freq"],
                                      log_level=self.conf["log_level"],
                                      )
         self.server.serve_forever()

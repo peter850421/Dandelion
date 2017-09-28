@@ -127,6 +127,21 @@ class BaseAsyncClient(object):
         except ValueError:
             self.logger.exception("Message is not valid JSON.")
 
+    async def process_received_message(self, ws, url, once=False):
+        async for msg in ws:
+            self.logger.debug("RECEIVE MSG %s, FROM URL: %s." % (str(msg), url))
+            if msg.type == WSMsgType.TEXT:
+                breakable = await self._dispatch(msg, ws)
+                if once or breakable:
+                    await ws.close()
+                    break
+            elif msg.type == WSMsgType.CLOSED:
+                break
+            elif msg.type == WSMsgType.ERROR:
+                break
+            else:
+                break
+
     async def on_DEFAULT(self, msg, ws):
         pass
 
@@ -149,21 +164,6 @@ class BaseAsyncClient(object):
         for task in tasks:
             task.cancel()
             await task
-
-    async def process_received_message(self, ws, url, once=False):
-        async for msg in ws:
-            self.logger.debug("RECEIVE MSG %s, FROM URL: %s." % (str(msg), url))
-            if msg.type == WSMsgType.TEXT:
-                breakable = self._dispatch(msg, ws)
-                if once or breakable:
-                    await ws.close()
-                    break
-            elif msg.type == WSMsgType.CLOSED:
-                break
-            elif msg.type == WSMsgType.ERROR:
-                break
-            else:
-                break
 
 
 class BoxAsyncClient(BaseAsyncClient):
@@ -238,10 +238,18 @@ class BoxAsyncClient(BaseAsyncClient):
             pass
 
     async def send_entrance(self, ws):
-        with await self.rdp as rdb:
-            self_exchange = await rdb.hgetall(self._rk("SELF_EXCHANGE"))
+        self_exchange = await self.prepare_exchange_data()
         await self.ws_send(self_exchange, ws)
         self.logger.info("SEND Msg to ENTRANCE : %s" % str(self_exchange))
+
+    async def prepare_exchange_data(self):
+        with await self.rdp as rdb:
+            self_exchange = await rdb.hgetall(self._rk("SELF_EXCHANGE"))
+            logs_keys = await rdb.keys(self._rk("TRAFFIC_FLOW")+"*")
+            for key in logs_keys:
+                log = await rdb.hgetall(key)
+                self_exchange[key] = log
+        return self_exchange
 
     async def update_self_exchange(self):
         """ Update Own Exchange Info """
@@ -316,7 +324,8 @@ class PublisherAsyncClient(BaseAsyncClient):
         self.logger = get_logger("Publisher", level=log_level)
         self.min_peers = min_http_peers
         self.current_peers = 0
-        self._peers_ws = dict()
+        self._peers_ws = dict()  # keys: box id; values (dict): url and ws
+        self._connect_box_tasks = dict()
 
     async def run(self):
         if self.ip is None:
@@ -326,14 +335,19 @@ class PublisherAsyncClient(BaseAsyncClient):
         publish_task = asyncio.ensure_future(self.publish())
         while True:
             try:
-                asyncio.ensure_future(self.maintain_peers())
+                await self.maintain_peers()
                 await asyncio.sleep(3)
             except asyncio.CancelledError:
                 collect_task.cancel()
                 publish_task.cancel()
+                await collect_task
+                await publish_task
                 break
 
     async def collecting(self):
+        """
+        Connecting to available entrance servers to collect available boxes.
+        """
         while True:
             try:
                 for url in self.entrance_urls:
@@ -380,8 +394,10 @@ class PublisherAsyncClient(BaseAsyncClient):
         """
         - First rank all known boxes in redis, the algorithm is implemented at rank_boxes
         - According to the ranking, pick boxes with higher scores and then make connection
-        - Record it to the database
+        - If box's ip or address has changed, then close it
         """
+        if len(self._peers_ws) > self.min_peers:
+            return
         await self._loop.run_in_executor(None, self.rank_boxes)
         self.logger.info("---Maintain_Peers---")
         with await self.rdp as rdb:
@@ -392,8 +408,8 @@ class PublisherAsyncClient(BaseAsyncClient):
             for box_id in box_list:
                 if box_id not in _peers_ws_keys:
                     self._peers_ws[box_id] = {}
-                    asyncio.ensure_future(self.connect_box(box_id))
-
+                    self._connect_box_tasks[box_id] = asyncio.ensure_future(self.connect_box(box_id))
+            # If box's IP changes after making connection, then remove it.
             for box_id in _peers_ws_keys:
                 current_url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
                 if not self._peers_ws[box_id].get("url") == current_url:
@@ -401,9 +417,6 @@ class PublisherAsyncClient(BaseAsyncClient):
                         await self._peers_ws[box_id]['ws'].close()
                         self._peers_ws.pop(box_id, None)
                         await rdb.zrem(self._rk("BOX_RANKING"), box_id)
-
-
-
                     except:
                         pass
 
@@ -420,7 +433,6 @@ class PublisherAsyncClient(BaseAsyncClient):
         boxes = rdb.keys(self._rk("SEARCH", "box*"))
         for box in boxes:
             box = gktail(box)
-            self.logger.info("BOX_RANKING BOX-%s"%(box) )
             rdb.zadd(self._rk("BOX_RANKING"), 0, box)
 
     async def create_publish_message(self):
@@ -449,14 +461,17 @@ class PublisherAsyncClient(BaseAsyncClient):
                 }
                 self.logger.info("Connect to box %s" % box_id)
                 await self.process_received_message(ws, url)
-        except (aiohttp.WSServerHandshakeError, aiohttp.errors.ClientOSError):
+        except (aiohttp.WSServerHandshakeError, aiohttp.ClientOSError):
             self.logger.exception("Unable to connect to %s." % url, exc_info=False)
+        except asyncio.CancelledError:
+            pass
         except:
             self.logger.exception("Fail in connect_box %s" % box_id, exc_info=False)
         finally:
             self._peers_ws.pop(box_id, None)
             with await self.rdp as rdb:
                 await rdb.zrem(self._rk("BOX_RANKING"), box_id)
+            self._connect_box_tasks.pop(box_id, None)
 
     async def publish(self):
         """
@@ -468,6 +483,7 @@ class PublisherAsyncClient(BaseAsyncClient):
         5. Update Redis
         """
         try:
+            await asyncio.sleep(5)
             while True:
                 msg = "Success"
                 with await self.redis_pool as rdb:
@@ -500,8 +516,8 @@ class PublisherAsyncClient(BaseAsyncClient):
                 with await self.redis_pool as rdb:
                     self.logger.debug("Save SENT FILE %s" % (self._rk("FILE", "PROCESSED_FILES", file_path)))
                     await rdb.hmset_dict(self._rk("FILE", "PROCESSED_FILES", file_path), save_dict)
-                    # prevent old information to interferrence new informaion
-                    await rdb.expire(self._rk("FILE", "PROCESSED_FILES", file_path),30)
+                    # prevent old information to interfere new information
+                    await rdb.expire(self._rk("FILE", "PROCESSED_FILES", file_path), 30)
         except asyncio.CancelledError:
             return
 
@@ -510,17 +526,6 @@ class PublisherAsyncClient(BaseAsyncClient):
         Pop boxes from the head of list and push them back to the tail
         :return box's id and box's web socket
         """
-        # box = await rdb.blpop(self._rk("FILE", "BOX_LIST"),
-        #                       timeout=timeout)
-        # if box is None:
-        #     return None
-        # await rdb.rpush(self._rk("FILE", "BOX_LIST"), box)
-        # try:
-        #     ws = self._peers_ws[box]
-        # except KeyError:
-        #     self.logger.warning("Box is in FILE:BOX_LIST, but can't find corresponding websocket.")
-        #     return None
-        # return (box, ws)
         random.seed(time.time())
         if not len(self._peers_ws):
             return (None, None)
@@ -531,16 +536,26 @@ class PublisherAsyncClient(BaseAsyncClient):
             try:
                 if self._peers_ws[box]['ws'] is not None:
                     return (box, self._peers_ws[box]['ws'])
-
             except:
                 keys.remove(box)
         return (None, None)
 
     async def cleanup(self):
         """ Called when the loop stop """
-        await super().cleanup()
-        for box_id in self._peers_ws.keys():
-            await self._peers_ws[box_id]['ws'].close()
+        try:
+            for box_id in list(self._peers_ws):
+                if 'ws' in self._peers_ws[box_id].keys():
+                    await self._peers_ws[box_id]['ws'].close()
+            connect_box_tasks = list(self._connect_box_tasks)
+            for b_id in connect_box_tasks:
+                try:
+                    self._connect_box_tasks[b_id].cancel()
+                    await self._connect_box_tasks[b_id]
+                except KeyError:
+                    pass
+            await super(PublisherAsyncClient, self).cleanup()
+        except:
+            pass
 
 
 class FileManager:
@@ -557,6 +572,9 @@ class FileManager:
     def __init__(self, id,
                  redis_address=("127.0.0.1", 6379),
                  redis_db=0,):
+        """
+        :param id: publisher's id
+        """
         self.id = id
         self._rk = RedisKeyWrapper(self.id)
         self.rdb = redis.StrictRedis(host=redis_address[0],
@@ -584,7 +602,7 @@ class FileManager:
     def ask(self, filename):
         """
         :param filename:  file's directory
-        :return: dictionary of the filename in redis, if not exist then return none
+        :return: dictionary of the filename in redis, if not exist then return empty dictionary
         """
         response = self.rdb.hgetall(self._rk("FILE", "PROCESSED_FILES", filename))
         if len(response):
