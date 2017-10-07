@@ -208,6 +208,7 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
                 self.logger.exception("msg is not valid dictionary")
             response = await self.get_own_info_dict()
             response["MESSAGE"] = "ACCEPTED"
+            response["COMMAND"] = "EXCHANGE"
             await self.ws_send(response, ws)
             await self.update_box(msg, rdb)
             await self.mysql_process_on_msg(msg)

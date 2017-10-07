@@ -131,6 +131,7 @@ class EntranceServerTestCase(BaseEntranceClientTestCase):
         # Get response from entrance server
         response = (await ws.receive()).json()
         # Assert entrance has accepted
+        self.assertIn("COMMAND", response)
         self.assertIn("MESSAGE", response)
         self.assertIn("ACCEPTED", response["MESSAGE"])
         # Assert that entrance_urls are right
