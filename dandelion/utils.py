@@ -2,6 +2,7 @@ import aiohttp
 import json
 import uuid
 import logging
+import re
 
 GET_IP_URL = [
               'http://bot.whatismyipaddress.com',
@@ -138,3 +139,11 @@ async def ws_send_json(request, ws, logger=logging.getLogger()):
 def create_random_file_with_size(file_path, size):
     with open(file_path, "wb") as out:
         out.truncate(size)
+
+
+def check_is_valid_url(url):
+    s = re.compile('https?://((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})|(localhost))(:\d{1,4})?/.+')
+    if s.match(url):
+        return True
+    else:
+        return False

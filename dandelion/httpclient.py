@@ -13,8 +13,7 @@ from .systeminfo import CPU_loading_info, Memory_info, Loadaverage_info, Disk_in
 from .utils import RedisKeyWrapper, URLWrapper
 from .utils import get_key_tail as gktail
 from .utils import wrap_bytes_headers as wrapbh
-from .utils import get_ip
-from .utils import ws_send_json
+from .utils import get_ip, check_is_valid_url, ws_send_json
 from .logger import get_logger
 
 if sys.version_info < (3, 5):
@@ -41,7 +40,10 @@ class BaseAsyncClient(object):
         asyncio.set_event_loop(self._loop)
         self._queue_set = {}
         # We use set to maintain unique entrance urls
-        self.entrance_urls = set(entrance_urls)
+        self.entrance_urls = set()
+        for url in entrance_urls:
+            if check_is_valid_url(url):
+                self.entrance_urls.add(url)
         self._entrance_ws = dict()
         self._connect_entrance_tasks = dict()
         self._peers_ws = dict()
@@ -222,8 +224,6 @@ class BoxAsyncClient(BaseAsyncClient):
             if url and url not in self._entrance_ws.keys():
                 task = asyncio.ensure_future(self.connect_entrance(url))
                 self._connect_entrance_tasks[url] = task
-        # Clear set after pinging it
-        self.entrance_urls = set()
 
     async def on_EXCHANGE(self, msg, ws):
         """
@@ -232,7 +232,9 @@ class BoxAsyncClient(BaseAsyncClient):
         try:
             if msg["MESSAGE"] == "ACCEPTED":
                 if "ENTRANCE_URLS" in msg:
-                    self.entrance_urls.update(msg["ENTRANCE_URLS"])
+                    for url in msg["ENTRANCE_URLS"]:
+                        if check_is_valid_url(url):
+                            self.entrance_urls.add(url)
         except KeyError:
             self.logger.exception("Wrong EXCHANGE format from entrance or error occurs.")
         except:
@@ -453,8 +455,8 @@ class PublisherAsyncClient(BaseAsyncClient):
         with await self.rdp as rdb:
             url = (await rdb.hmget(self._rk("SEARCH", box_id), "CONNECT_WS"))[0]
         try:
-            if url is None:
-                raise ValueError("No available URL.")
+            if url is None or not check_is_valid_url(url):
+                raise ValueError("Not an available URL.")
             async with self.session.ws_connect(url) as ws:
                 await self.send_box(ws)
                 self._peers_ws[box_id] = {

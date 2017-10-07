@@ -9,7 +9,7 @@ import uvloop
 import re
 from aiohttp import web
 from .routes import setup_box_routes, setup_entrance_routes
-from .utils import RedisKeyWrapper, create_id
+from .utils import RedisKeyWrapper, create_id, check_is_valid_url
 from .logger import get_logger
 
 if sys.version_info < (3, 5):
@@ -218,7 +218,9 @@ class EntranceAsyncServer(BaseAsyncServer):
                                 port=self.conf["redis_address"][1],
                                 db=self.conf["redis_db"],
                                 encoding="utf-8")
-        rdb.sadd(self._rk("ENTRANCE_URLS"), *other_entrance_urls)
+        for url in other_entrance_urls:
+            if check_is_valid_url(url):
+                rdb.sadd(self._rk("ENTRANCE_URLS"), url)
 
     async def background_task(self):
         """
