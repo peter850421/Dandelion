@@ -92,18 +92,7 @@ class BaseAsyncServer(object):
         pass
 
     def base_url(self, with_scheme=False):
-        if with_scheme:
-            # If proxy_port is not None, then assume that the proxy_port has opened up https
-            if self.proxy_port:
-                return 'https://{}:{}/dandelion/{}/'.format(self.ip,
-                                                            self.proxy_port,
-                                                            self.id)
-            else:
-                return 'http://{}:{}/dandelion/{}/'.format(self.ip,
-                                                           self.port,
-                                                           self.id)
-        else:
-            return '/dandelion/{}/'.format(self.id)
+        raise NotImplementedError
 
     def ws_url(self, with_scheme=False):
         return self.base_url(with_scheme=with_scheme) + 'ws/'
@@ -188,6 +177,18 @@ class EntranceAsyncServer(BaseAsyncServer):
         self.background_task_freq = background_task_freq
         self.store_other_entrances_urls(other_entrances_urls)
 
+    def base_url(self, with_scheme=False):
+        if with_scheme:
+            # If proxy_port is not None, then assume that the proxy_port has opened up https
+            if self.proxy_port:
+                return 'https://{}:{}/dandelion/'.format(self.ip,
+                                                            self.proxy_port)
+            else:
+                return 'http://{}:{}/dandelion/'.format(self.ip,
+                                                           self.port)
+        else:
+            return '/dandelion/{}/'.format(self.id)
+
     def setup_routes(self):
         setup_entrance_routes(self.app)
 
@@ -271,6 +272,20 @@ class BoxAsyncServer(BaseAsyncServer):
         self.conf["nginx_access_log"] = nginx_access_log
         self.conf["ping_entrance_freq"] = ping_entrance_freq
         self.expire_files_freq = expire_files_freq
+
+    def base_url(self, with_scheme=False):
+        if with_scheme:
+            # If proxy_port is not None, then assume that the proxy_port has opened up https
+            if self.proxy_port:
+                return 'https://{}:{}/dandelion/{}/'.format(self.ip,
+                                                            self.proxy_port,
+                                                            self.id)
+            else:
+                return 'http://{}:{}/dandelion/{}/'.format(self.ip,
+                                                           self.port,
+                                                           self.id)
+        else:
+            return '/dandelion/{}/'.format(self.id)
 
     def setup_routes(self):
         setup_box_routes(self.app)
