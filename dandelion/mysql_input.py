@@ -12,7 +12,7 @@ def mysql_input(msg, conf, logger=None):
          VALUES (\"{box_id}\", \"{ip}\", \"{port}\", \"{cpu_Hz}\", \"{cpu_num}\", \"{cpu_usr}\", \
          \"{cpu_sys}\", \"{cpu_nic}\", \"{cpu_idle}\", \"{cpu_io}\", \"{cpu_irq}\", \"{cpu_sirq}\", \"{loadavg_1}\", \"{loadavg_5}\", \
          \"{loadavg_15}\", \"{mem_total}\", \"{mem_avail}\", \"{disk_total}\", \"{disk_avail}\", \"{time0}\")".format(
-            box_id=msg['BOX_ID'],
+            box_id=msg['ID'],
             ip=msg['IP'],
             port=msg['PORT'],
             cpu_Hz=msg['CPU_HZ'],

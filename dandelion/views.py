@@ -190,6 +190,7 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
             info = await rdb.hgetall(self._rk("OWN_INFO"))
             info["ENTRANCE_URLS"] = [self.app["ENTRANCE_URLS"]]
             others_entrance_urls = await rdb.smembers(self._rk("ENTRANCE_URLS"))
+        # because others_entrance_urls is type<set>, so we cannot add it to list
         for i in others_entrance_urls:
             info["ENTRANCE_URLS"].append(i)
         return info

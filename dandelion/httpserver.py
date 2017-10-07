@@ -124,7 +124,7 @@ class BaseAsyncServer(object):
           should ensure_future before calling serve_forever
         """
         web.run_app(self.app,
-                    host=self.ip,
+                    host="0.0.0.0",
                     port=self.port,
                     loop=self.loop
                     )
@@ -175,8 +175,7 @@ class EntranceAsyncServer(BaseAsyncServer):
                          redis_maxsize=redis_maxsize,
                          **kwargs)
         self.app["logger"] = self.logger
-        self.conf.update(
-            {
+        self.conf.update({
                 "amount_of_boxes_per_request": amount_of_boxes_per_request,
                 "expire_box_time": expire_box_time,
                 "mysql_host": mysql_host,
@@ -184,8 +183,7 @@ class EntranceAsyncServer(BaseAsyncServer):
                 "mysql_db": mysql_db,
                 "mysql_user": mysql_user,
                 "mysql_port": mysql_port,
-            }
-        )
+        })
         # For websockets handlers get_own_info_dict
         self.app["ENTRANCE_URLS"] = self.ws_url(with_scheme=True)
         self.background_task_freq = background_task_freq
@@ -196,10 +194,10 @@ class EntranceAsyncServer(BaseAsyncServer):
             # If proxy_port is not None, then assume that the proxy_port has opened up https
             if self.proxy_port:
                 return 'https://{}:{}/dandelion/'.format(self.ip,
-                                                            self.proxy_port)
+                                                         self.proxy_port)
             else:
                 return 'http://{}:{}/dandelion/'.format(self.ip,
-                                                           self.port)
+                                                        self.port)
         else:
             return '/dandelion/'
 
