@@ -214,30 +214,9 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
             self.logger.info("Update box from %s on EXCHANGE" % self.connect_id)
         return True
 
-    @staticmethod
-    async def mysql_process_on_msg(msg):
-        mysql_input(msg['ID'],
-                    msg['IP'],
-                    msg['PORT'],
-                    msg['CPU-HZ'],
-                    msg['CPU-NUM'],
-                    msg['CPU-USR'],
-                    msg['CPU-SYS'],
-                    msg['CPU-NIC'],
-                    msg['CPU-IDLE'],
-                    msg['CPU-IO'],
-                    msg['CPU-IRQ'],
-                    msg['CPU-SIRQ'],
-                    msg['LOADAVG-1'],
-                    msg['LOADAVG-5'],
-                    msg['LOADAVG-15'],
-                    msg['MEM-TOTAL'],
-                    msg['MEM-AVAIL'],
-                    msg['DISK-TOTAL'],
-                    msg['DISK-AVAIL'])
-        mysql_update_box(msg['ID'],
-                         msg['IP'],
-                         msg['PORT'])
+    async def mysql_process_on_msg(self, msg):
+        mysql_input(msg, self.conf, logger=self.logger)
+        mysql_update_box(msg['ID'], msg['IP'], msg['PORT'], self.conf)
 
     async def update_box(self, msg, redis):
         """ Processing box's message by classifying it to proper set """

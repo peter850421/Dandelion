@@ -138,7 +138,7 @@ class EntranceServerTestCase(BaseEntranceClientTestCase):
         for url in self.other_entrance_urls_example:
             self.assertIn(url, response["ENTRANCE_URLS"])
         # Should also include the entrance server's ws url
-        self.assertIn(self.entrance.ws_url(with_scheme=True), response["ENTRANCE_URLS"])
+        self.assertIn("http://127.0.0.1:7070/dandelion/ws/", response["ENTRANCE_URLS"])
         # Assert that entrance server has stored the box into its redis correctly
         self.assertTrue(self.redis.exists(self.entrance._rk("EXCHANGE", self.box_client.id)))
         stored_ex = self.redis.hgetall(self.entrance._rk("EXCHANGE", self.box_client.id))

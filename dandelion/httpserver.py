@@ -154,6 +154,11 @@ class EntranceAsyncServer(BaseAsyncServer):
                  background_task_freq=5,
                  log_level=logging.DEBUG,
                  other_entrances_urls=[],
+                 mysql_host="0.0.0.0",
+                 mysql_password='',
+                 mysql_db='',
+                 mysql_port=3306,
+                 mysql_user='root',
                  **kwargs):
         self.logger = get_logger("Entrance", level=log_level)
         if "entrance-" not in id:
@@ -170,8 +175,17 @@ class EntranceAsyncServer(BaseAsyncServer):
                          redis_maxsize=redis_maxsize,
                          **kwargs)
         self.app["logger"] = self.logger
-        self.conf["expire_box_time"] = expire_box_time
-        self.conf["amount_of_boxes_per_request"] = amount_of_boxes_per_request
+        self.conf.update(
+            {
+                "amount_of_boxes_per_request": amount_of_boxes_per_request,
+                "expire_box_time": expire_box_time,
+                "mysql_host": mysql_host,
+                "mysql_password": mysql_password,
+                "mysql_db": mysql_db,
+                "mysql_user": mysql_user,
+                "mysql_port": mysql_port,
+            }
+        )
         # For websockets handlers get_own_info_dict
         self.app["ENTRANCE_URLS"] = self.ws_url(with_scheme=True)
         self.background_task_freq = background_task_freq
@@ -187,7 +201,7 @@ class EntranceAsyncServer(BaseAsyncServer):
                 return 'http://{}:{}/dandelion/'.format(self.ip,
                                                            self.port)
         else:
-            return '/dandelion/{}/'.format(self.id)
+            return '/dandelion/'
 
     def setup_routes(self):
         setup_entrance_routes(self.app)
