@@ -5,7 +5,7 @@ REDIS_PORT: 6379
 DB: 0
 
 # Should be a list (Start with an indent, a dash and a space)
-# Example: "https://ENTRANCE_IP:8000/dandelion/ws"
+# Example: "https://ENTRANCE_IP:8000/dandelion/ws/"
 ENTRANCE_URLS:
   -
 
