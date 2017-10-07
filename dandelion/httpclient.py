@@ -207,7 +207,8 @@ class BoxAsyncClient(BaseAsyncClient):
 
         :return:
         """
-        self.session = ClientSession()
+        conn = aiohttp.TCPConnector(verify_ssl=False)
+        self.session = ClientSession(connector=conn)
         while True:
             try:
                 await self.update_self_exchange()
@@ -330,7 +331,8 @@ class PublisherAsyncClient(BaseAsyncClient):
     async def run(self):
         if self.ip is None:
             self.ip = await get_ip()
-        self.session = ClientSession()
+        conn = aiohttp.TCPConnector(verify_ssl=False)
+        self.session = ClientSession(connector=conn)
         collect_task = asyncio.ensure_future(self.collecting())
         publish_task = asyncio.ensure_future(self.publish())
         while True:
