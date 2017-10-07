@@ -218,7 +218,7 @@ class BoxAsyncClient(BaseAsyncClient):
 
     async def ping_entrances(self):
         for url in self.entrance_urls:
-            if url not in self._entrance_ws.keys():
+            if url and url not in self._entrance_ws.keys():
                 task = asyncio.ensure_future(self.connect_entrance(url))
                 self._connect_entrance_tasks[url] = task
         # Clear set after pinging it
