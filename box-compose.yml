@@ -13,7 +13,9 @@ services:
     command: ["python", "/app/run_box.py"]
 
   redis:
-    image: redis:4.0.1-alpine
+    image: mangoraft/redis-arm
+    environment:
+      - REDIS_PASS=**None**
 
   nginx:
     build: ./compose/box/nginx

@@ -1,4 +1,4 @@
-FROM nginx:1.13-alpine
+FROM armhfbuild/nginx
 
 ADD nginx.conf /etc/nginx/nginx.conf
 ADD server.crt /etc/ssl/server.crt
