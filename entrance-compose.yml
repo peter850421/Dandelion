@@ -12,3 +12,13 @@ services:
 
   redis:
     image: redis:4.0-alpine
+
+  nginx:
+      build:
+        context: .
+        dockerfile: ./compose/entrance/nginx/Dockerfile
+      ports:
+        - "7070:7070"
+      depends_on:
+        - entrance
+

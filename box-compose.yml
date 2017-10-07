@@ -23,8 +23,6 @@ services:
       - /tmp:/tmp
       - /var/log/nginx:/var/log/nginx
     ports:
-      - "8000:8000"
+      - "7070:7070"
     depends_on:
       - box
-
-
