@@ -28,5 +28,6 @@ services:
       - /etc/localtime:/etc/localtime
     ports:
       - "7070:7070"
+      - "7072:7072"
     depends_on:
       - box
