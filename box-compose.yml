@@ -18,7 +18,10 @@ services:
       - REDIS_PASS=**None**
 
   nginx:
-    build: ./compose/box/nginx
+    build:
+      context: .
+      dockerfile: ./compose/box/nginx/Dockerfile
+
     volumes:
       - /tmp:/tmp
       - /var/log/nginx:/var/log/nginx
