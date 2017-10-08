@@ -6,11 +6,13 @@ services:
       context: .
       dockerfile: ./compose/publisher/Dockerfile
     depends_on:
-      - redis
+      - redis-publisher
     volumes:
       - /tmp:/tmp
       - /etc/localtime:/etc/localtime
     command: ["python", "/app/run_publisher.py"]
 
-  redis:
+  redis-publisher:
     image: redis:4.0-alpine
+    ports:
+      - "6379:6379"  #Let website to connect docker's redis
