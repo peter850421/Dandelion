@@ -314,7 +314,7 @@ class PublisherAsyncClient(BaseAsyncClient):
             self.logger.warning("ID does not contain publisher-")
             raise ValueError
         super().__init__(id,
-                         entrance_urls=[],
+                         entrance_urls=entrance_urls,
                          ip=ip,
                          loop=loop,
                          redis_address=redis_address,
