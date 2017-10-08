@@ -31,7 +31,7 @@ class EventHandler(pyinotify.ProcessEvent):
 
 if __name__ == '__main__':
     try:
-        f = open("publisher-id.txt", 'r')
+        f = open("/tmp/publisher-id.txt", 'r')
         publisher_id = f.read()
         f.close()
     except IOError:

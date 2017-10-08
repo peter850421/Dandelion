@@ -13,7 +13,7 @@ except ImportError:
     import queue
 
 try:
-    f = open("publisher-id.txt", 'r')
+    f = open("/tmp/publisher-id.txt", 'r')
     publisher_id = f.read()
     f.close()
 except IOError:
@@ -121,7 +121,7 @@ def m3u8_trans(pathname, publisher_id):
                 box_port=answer['PORT']
             except KeyError:
                 logging.exception("Can't find IP or PORT in answer.", exc_info=False)
-            
+
             if box_ip is not None and box_port is not None:
                 get_url_prefix = "http://"+box_ip+":"+box_port+"/"
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
