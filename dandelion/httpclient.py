@@ -243,7 +243,7 @@ class BoxAsyncClient(BaseAsyncClient):
     async def send_entrance(self, ws):
         self_exchange = await self.prepare_exchange_data()
         await self.ws_send(self_exchange, ws)
-        self.logger.info("SEND Msg to ENTRANCE : %s" % str(self_exchange))
+        self.logger.debug("SEND Msg to ENTRANCE : %s" % str(self_exchange))
 
     async def prepare_exchange_data(self):
         with await self.rdp as rdb:

@@ -105,7 +105,7 @@ class BaseAsyncServer(object):
         self.rdp = await aioredis.create_pool(self.conf["redis_address"],
                                               db=self.conf["redis_db"],
                                               minsize=self.conf["redis_minsize"],
-                                              maxsize=self.conf["redis_minsize"],
+                                              maxsize=self.conf["redis_maxsize"],
                                               encoding="utf-8")
         self.app['redis_pool'] = self.rdp
 
