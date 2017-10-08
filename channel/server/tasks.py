@@ -33,7 +33,7 @@ expire_media_time   = configfile.EXPIRE_MEDIA_TIME
 m3u8_time_waiting   = configfile.M3U8_TIME_WAITING
 redis_ts_sorted_set = configfile.REDIS_EXPIRE_TS
 REDIS_HOST          = configfile.REDIS_HOST
-
+BOX_PORT_FOR_TS     = configfile.BOX_PORT_FOR_TS
 
 def logmsg(msg):
     logging.warning(msg)
@@ -114,16 +114,16 @@ def m3u8_trans(pathname, publisher_id):
     while line:
         if '.ts' == line.rstrip()[-3:]:
             box_ip = None
-            box_port = None
+            box_port = None #no use
             answer = m.ask(path+'/'+line.rsplit('\n', 1)[0])
             try:
                 box_ip=answer['IP']
-                box_port=answer['PORT']
+                box_port=answer['PORT'] #no use
             except KeyError:
                 logging.exception("Can't find IP or PORT in answer.", exc_info=False)
 
             if box_ip is not None and box_port is not None:
-                get_url_prefix = "http://"+box_ip+":"+box_port+"/"
+                get_url_prefix = "http://"+box_ip+":"+BOX_PORT_FOR_TS+"/"
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
             else:
                 lines_zadd.append(line)
@@ -147,11 +147,11 @@ def update_M3U8(ts_file, publisher_id):
     pathname            = M3U8_WRITE_DIR+'/'+stream_name+'/'+'index.m3u8'
     m = FileManager(publisher_id)
     box_ip = None
-    box_port = None
+    box_port = None #no use
     answer = m.ask(M3U8_READ_DIR + '/' + ts_file)
     try:
         box_ip=answer['IP']
-        box_port=answer['PORT']
+        box_port=answer['PORT'] #no use
     except KeyError:
         logging.exception("Can't find IP or PORT in answer.", exc_info=False)
     if box_ip is None or box_port is None:
@@ -168,7 +168,7 @@ def update_M3U8(ts_file, publisher_id):
         if ts in line:
             if box_ip is not None and box_port is not None:
                 line = line.rsplit("/", 1)[1]
-                get_url_prefix = "http://"+box_ip+":"+box_port+"/"
+                get_url_prefix = "http://"+box_ip+":"+BOX_PORT_FOR_TS+"/"
                 line = get_url_prefix + publisher_id + M3U8_READ_DIR + "/" + stream_name + "/" + line
         st.append(line)
         line = outfile.readline()

@@ -10,6 +10,7 @@ M3U8_WRITE_DIR              = "/tmp/hls/media"
 M3U8_GET_DIR                = "hls/media/"
 MEDIA_GET_DIR               = "hls/output/"
 BOX_MEDIA_WRITE_DIR         = "/tmp/hls/output"
+BOX_PORT_FOR_TS             = '7072'
 M3U8_WATCH_PATH             = M3U8_READ_DIR
 M3U8_MEDIA_AMOUNT           = 12
 M3U8_TIME_WAITING           = 4   #seconds (use float)
