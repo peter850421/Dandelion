@@ -9,9 +9,13 @@ services:
       - redis
     volumes:
       - /tmp:/tmp
+      - /etc/localtime:/etc/localtime
+    command: ["python", "/app/run_entrance.py"]
 
   redis:
     image: redis:4.0-alpine
+    ports:
+      - "6379:6379"  #Let website to connect docker's redis
 
   nginx:
       build:

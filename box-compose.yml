@@ -22,6 +22,7 @@ services:
     volumes:
       - /tmp:/tmp
       - /var/log/nginx:/var/log/nginx
+      - /etc/localtime:/etc/localtime
     ports:
       - "7070:7070"
     depends_on:

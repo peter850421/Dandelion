@@ -9,6 +9,8 @@ services:
       - redis
     volumes:
       - /tmp:/tmp
+      - /etc/localtime:/etc/localtime
+    command: ["python", "/app/run_publisher.py"]
 
   redis:
     image: redis:4.0-alpine

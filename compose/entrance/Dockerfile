@@ -9,4 +9,3 @@ COPY . /app
 WORKDIR /app
 RUN python /app/setup.py install
 
-ENTRYPOINT ["python", "run_entrance.py"]

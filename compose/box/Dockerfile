@@ -8,5 +8,3 @@ RUN pip install -r requirements.txt
 COPY . /app
 WORKDIR /app
 RUN python /app/setup.py install
-
-#ENTRYPOINT ["python", "run_box.py"]
