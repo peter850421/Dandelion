@@ -333,13 +333,14 @@ class BoxAsyncServer(BaseAsyncServer):
         publisher to distribute its files.
         """
         def extract_log_line(line):
-            match = re.search(r'\[(?P<datetime>.+) \+0000\]-"[A-Z]{3,4} (?P<url>.+) HTTPS?/.+"-(?P<status>\d{3})-(?P<size>\d+)',
+            match = re.search(r'"[A-Z]{3,4} (?P<url>.+) HTTPS?/.+"-(?P<status>\d{3})-(?P<size>\d+)',
                           line)
             if match is None:
                 return None
+            elif int(match.group('status')) >= 400:
+                return None
             else:
                 return {
-                    'datetime': match.group('datetime'),
                     'url': match.group('url'),
                     'status': int(match.group('status')),
                     'size': int(match.group('size'))
