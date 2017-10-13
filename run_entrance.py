@@ -34,7 +34,7 @@ if __name__ == '__main__':
                         expire_box_time=config["ENTRANCE_EXPIRE_BOX_TIME"],
                         amount_of_boxes_per_request=config["AMOUNT_OF_BOXES_PER_REQUEST"],
                         proxy_port=config["ENTRANCE_SERVER_PROXY_PORT"],
-                        other_entrances_urls=config["ENTRANCE_URLS"],
+                        other_entrances_urls=config["ENTRANCE_OTHER_URLS"],
                         mysql_host=config["ENTRANCE_MYSQL_HOST"],
                         mysql_password=config["ENTRANCE_MYSQL_PASSWORD"],
                         mysql_db=config["ENTRANCE_MYSQL_DB"],
