@@ -4,6 +4,7 @@
 ### Project ###
 *-id.txt
 config.yaml
+entrance-config.yaml
 
 ### OSX ###
 .DS_Store

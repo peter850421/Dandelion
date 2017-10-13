@@ -5,7 +5,7 @@ import os
 
 if __name__ == '__main__':
     ROOT_DIR = os.environ["ROOT_DIR"] = os.path.dirname(__file__)
-    f = open(os.path.join(ROOT_DIR, "config.yaml"), "r")
+    f = open(os.path.join(ROOT_DIR, "entrance-config.yaml"), "r")
     config = yaml.safe_load(f)
     try:
         base_dir = config["BASE_DIRECTORY"]

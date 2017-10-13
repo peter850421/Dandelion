@@ -6,13 +6,13 @@ services:
       context: .
       dockerfile: ./compose/entrance/Dockerfile
     depends_on:
-      - redis
+      - redis-entrance
     volumes:
       - /tmp:/tmp
       - /etc/localtime:/etc/localtime
     command: ["python", "/app/run_entrance.py"]
 
-  redis:
+  redis-entrance:
     image: redis:4.0-alpine
 
   nginx:
