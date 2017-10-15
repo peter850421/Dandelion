@@ -84,3 +84,34 @@ def mysql_update_box(BOX_ID, IP, PORT, conf):
         except:
             print("Error: unable to update box data")
     mdb.close()
+
+def mysql_traffic_flow(BOX_ID, URL, STATUS, SIZE, conf, logger=None):
+    Time0 = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    sql = ""
+    
+    try:
+        sql = "INSERT INTO `traffic_flow`(`BOX_ID`, `url`, `status`, `size`, `time` \
+                VALUES (\"{box_id}\",\"{url}\",\"{status}\",\"{size}\",\"{time0}\")".format(
+            box_id=BOX_ID,
+            url=URL,
+            status=URL,
+            size=SIZE,
+            time0=Time0)
+    except KeyError:
+        if logger:
+            logger.exception("KeyError in msg while inserting box-info to mysql")
+        return
+
+    try:
+        mdb = pymysql.connect(host=conf["mysql_host"],
+                              user=conf["mysql_user"],
+                              port=conf["mysql_port"],
+                              database=conf["mysql_db"],
+                              password=conf["mysql_password"])
+        cursor = mdb.cursor()
+        cursor.execute(sql)
+        mdb.commit()
+        mdb.close()
+    except:
+        if logger:
+            logger.exception("Unable to connect to mysql or cannot insert box-info data")

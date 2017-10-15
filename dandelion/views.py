@@ -219,6 +219,10 @@ class EntranceWebSocketHandler(BaseWebSocketHandler):
     async def mysql_process_on_msg(self, msg):
         mysql_input(msg, self.conf, logger=self.logger)
         mysql_update_box(msg['ID'], msg['IP'], msg['PORT'], self.conf)
+        for key in msg.keys():
+            if "TRAFFIC_FLOW" in key:
+                mysql_traffic_flow(msg['ID']), msg[key]['url'], msg[key]['status'], msg[key]['size'], self.conf, logger=self.logger)
+
 
     async def update_box(self, msg, redis):
         """ Processing box's message by classifying it to proper set """
