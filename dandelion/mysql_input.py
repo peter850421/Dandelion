@@ -88,13 +88,13 @@ def mysql_update_box(BOX_ID, IP, PORT, conf):
 def mysql_traffic_flow(BOX_ID, URL, STATUS, SIZE, conf, logger=None):
     Time0 = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     sql = ""
-    
+
     try:
         sql = "INSERT INTO `traffic_flow`(`BOX_ID`, `url`, `status`, `size`, `time` \
                 VALUES (\"{box_id}\",\"{url}\",\"{status}\",\"{size}\",\"{time0}\")".format(
             box_id=BOX_ID,
             url=URL,
-            status=URL,
+            status=STATUS,
             size=SIZE,
             time0=Time0)
     except KeyError:
