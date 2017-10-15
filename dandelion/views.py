@@ -3,7 +3,7 @@ import os
 import subprocess
 from aiohttp import web, WSMsgType
 from .utils import RedisKeyWrapper, filter_bytes_headers, ws_send_json
-from .mysql_input import mysql_input, mysql_update_box
+from .mysql_input import mysql_input, mysql_update_box , mysql_traffic_flow
 
 async def index(request):
     request.app["logger"].debug("trigger index!!")

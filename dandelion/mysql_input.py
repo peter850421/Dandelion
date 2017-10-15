@@ -108,6 +108,7 @@ def mysql_traffic_flow(BOX_ID, URL, STATUS, SIZE, conf, logger=None):
                               port=conf["mysql_port"],
                               database=conf["mysql_db"],
                               password=conf["mysql_password"])
+        self.logger.debug("Mysql debug %s " % sql)
         cursor = mdb.cursor()
         cursor.execute(sql)
         mdb.commit()
