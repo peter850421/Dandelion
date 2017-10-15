@@ -90,7 +90,7 @@ def mysql_traffic_flow(BOX_ID, URL, STATUS, SIZE, conf, logger=None):
     sql = ""
 
     try:
-        sql = "INSERT INTO `traffic_flow`(`BOX_ID`, `url`, `status`, `size`, `time` \
+        sql = "INSERT INTO `traffic_flow`(`BOX_ID`, `url`, `status`, `size`, `time`) \
                 VALUES (\"{box_id}\",\"{url}\",\"{status}\",\"{size}\",\"{time0}\")".format(
             box_id=BOX_ID,
             url=URL,
