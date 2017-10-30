@@ -1,7 +1,7 @@
 # Dandelion
 ![alt text](https://img.shields.io/badge/aiohttp-2.2.0-orange.svg)
 ![alt text](https://img.shields.io/badge/python-3.6-blue.svg)
-![alt text](https://img.shields.io/badge/coverage-46%25-green.svg)
+![alt text](https://img.shields.io/badge/coverage-57%25-green.svg)
 ![alt text](https://img.shields.io/dub/l/vibe-d.svg)
 
 
@@ -42,18 +42,13 @@ python3 setup.py install
 - Nginx (as a proxy server)
 
 ## Get started
-- Duplicate the config.yaml.example file and rename it to config.yaml. Please configure the settings in the file properly according to your character (Entrance server, box and publisher).
+- Duplicate the config.yaml.example file and rename it to config.yaml(entrance-config.yaml for entrance server). Please configure the settings in the file properly according to your character (Entrance server, box and publisher).
 
 - Run
 ```
 python3 run_box.py
 python3 run_entrance.py
 python3 run_publisher.py
-```
-
-- You can inspect the program in dandelion.log
-```
-tail -f dandelion.log
 ```
 
 - You can also fire up by docker, which is much easier.
