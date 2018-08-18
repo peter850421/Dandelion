@@ -5,39 +5,40 @@
 ![alt text](https://img.shields.io/dub/l/vibe-d.svg)
 
 
-
-
-## Abstract
-Dandelion platform aims to optimize bandwidth usage by re-allocating idle bandwidth for other purposes, 
-such as live streaming.  The platform consists of an "entrance server", "boxes", and "publishers". 
+## Introduction
+Dandelion platform aims to optimize bandwidth usage by re-allocating idle bandwidth in household for other purposes, 
+such as live streaming. The platform consists of an "entrance server", "boxes", and "publishers". 
 
 Boxes are microprocessors distributed among household that collect any unused bandwidth. The location and 
 system information of each box is recorded onto the entrance server's database. All recorded boxes periodically
 send pertinent information, such as measured bandwidth, available memory space and GEOIP info, etc., to the 
 entrance server. If the entrance server does not receive any updates from a box after some given time, the 
-server will remove that box from its database. Each publisher keeps track of a list of box information from 
-the entrance server. Users access the collected bandwidth through publishers. Users first push the file to 
-the publisher. Then the publisher picks an appropriate box from its list and send the file to that box. If 
-users would like to know where the file goes, they could make queries to the publisher. 
+server will remove that box from its database. By now, the network between boxes and entrances is fully illustrated.
 
-Currently, we use web sockets to exchange information and zeromq to send files from publishers to boxes.
-However, everything is still in an incipient stage, nothing is guaranteed to use in future. For example, 
-we might want to use udp or quic instead of http in exchanging information progress in order to save unnecessary 
-connections. Feel free to folk to make this project better.
+To explain the funcion of the publisher, it is apposite to take live streaming as an example. Every caster has a 
+publisher installed in his or her local machine. The publisher will then ask entrance server for a list of proper 
+boxes and make connection to each of them. After this process, the publisher is ready to do its real job - 
+publishing files to boxes. It randomly selects a box as a target to store a specific file or a segment 
+of the streaming and record these information to the database, which will be queried later to search for the location
+of the file. When a viewer tries to access the web page of the caster's live streaming, the web server will query
+the caster's publisher and return these locations back to the viewer's browser, redirecting the browser to the 
+box to get the file. 
 
-Update 2017/4/18
-Zeromq has been removed. Use websocket instead.
+In sum, it is clear to see that the web server has saved its network traffic, which is the main 
+purpose of this project because the amount of the network traffic is propotional to the spending of the cost, by exploiting the network in each household via the box.
+
 
 ## Graph
 ![Screenshot](screenshot.png)
+(Zeromq is replaced with websocket in consideration of the performance)
 
 ## Before Start
-##### Make sure that python's version is higher than 3.5 and run command below
+### Make sure that python's version is higher than 3.5 and run command below
 ```
 sudo pip3 install -r requirements.txt
 python3 setup.py install
 ```
-##### Other required Installation (without using docker)
+### Other required Installation (without using docker)
 - Redis
 - Nginx (as a proxy server)
 
@@ -70,7 +71,6 @@ coverage report
 
 ## Developer Document
 ### Point to Point Exchange Info format
-
 ##### Box to Entrance (EXCHANGE REQUEST)
 - ID
 - IP
@@ -160,10 +160,13 @@ coverage report
 None
 
 
-## Box
-##### ID
+### Info format in each role
+##### Box
+
+###### ID
 - box-(HASH)
-### Redis KEY Namespace
+
+###### Redis KEY Namespace
 - {ID}:SELF_EXCHANGE
 - {ID}:EXCHANGE
 - {ID}:SUBSCRIBE:{PUBLISHER ID}
@@ -174,10 +177,11 @@ None
     - status (http status)
     - size
 
-## Publisher
-##### ID
+##### Publisher
+###### ID
 - publisher-(HASH)
-##### Redis KEY Namespace
+
+###### Redis KEY Namespace
 - {ID}:SEARCH:{BOX_ID} (hash)
 - {ID}:SELF_INFO (hash)
 - {ID}:BOX_RANKING  (sorted set)
@@ -186,15 +190,14 @@ None
 - {ID}:FILE:PROCESSED_FILES
 
 
-
-## Entrance Server 
-##### ID
+##### Entrance Server 
+###### ID
 - entrance-(HASH)
 ##### URL (Base_url/)
 - index
 - ws_change/ : handling incoming websocket
 
-##### Redis KEY Namespace
+###### Redis KEY Namespace
 - {ID}:ENTRANCE_URLS: Set that contains other_entrance_urls so that if the user desires 
                       to expand it when the client has started.(Should not include this 
                       entrance server's url!!)
