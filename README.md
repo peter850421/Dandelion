@@ -6,31 +6,30 @@
 
 
 ## Introduction
-Dandelion platform aims to optimize bandwidth usage by re-allocating idle bandwidth in household for other purposes, 
-such as live streaming. The platform consists of an "entrance server", "boxes", and "publishers". 
+Dandelion platform aims to optimize bandwidth usage by re-allocating idle bandwidth in households for other purposes, 
+such as live streaming. The platform comprises an entrance server, a plurality of boxes, and a plurality of publishers. 
 
-Boxes are microprocessors distributed among household that collect any unused bandwidth. The location and 
+Boxes are microprocessors that are distributed among households and collect any unused bandwidth. The location and 
 system information of each box is recorded onto the entrance server's database. All recorded boxes periodically
 send pertinent information, such as measured bandwidth, available memory space and GEOIP info, etc., to the 
-entrance server. If the entrance server does not receive any updates from a box after some given time, the 
-server will remove that box from its database. By now, the network between boxes and entrances is fully illustrated.
+entrance server. If the entrance server does not receive any updates from a box after some given time, the entrance 
+server will remove that box from its database.
 
-To explain the funcion of the publisher, it is apposite to take live streaming as an example. Every caster has a 
-publisher installed in his or her local machine. The publisher will then ask entrance server for a list of proper 
+To explain the function of the publisher, it is apposite to take live streaming as an example. Every caster has a 
+publisher installed in his or her local machine. The publisher will then ask the entrance server for a list of proper 
 boxes and make connection to each of them. After this process, the publisher is ready to do its real job - 
-publishing files to boxes. It randomly selects a box as a target to store a specific file or a segment 
-of the streaming and record these information to the database, which will be queried later to search for the location
+publishing files to boxes. The publisher randomly selects a box as a target to store a specific file or a segment 
+of the live streaming and record this action to the publisher's database, which will be queried later to search for the location
 of the file. When a viewer tries to access the web page of the caster's live streaming, the web server will query
-the caster's publisher and return these locations back to the viewer's browser, redirecting the browser to the 
+the caster's publisher, return these locations back to the viewer's browser and redirect the browser to the 
 box to get the file. 
 
-In sum, it is clear to see that the web server has saved its network traffic, which is the main 
-purpose of this project because the amount of the network traffic is propotional to the spending of the cost, by exploiting the network in each household via the box.
+In sum, it is clear to see that by making full use of the idle bandwidth in each household via the box, the web server has saved its network traffic, which is the main 
+purpose of this project because the amount of the network traffic is proportional to the cost of data transfer.
 
 
 ## Graph
 ![Screenshot](screenshot.png)
-(Zeromq is replaced with websocket in consideration of the performance)
 
 ## Before Start
 ### Make sure that python's version is higher than 3.5 and run command below
