@@ -144,7 +144,7 @@ def create_random_file_with_size(file_path, size):
 def check_is_valid_url(url):
     if not type(url) is str:
         return False
-    s = re.compile('https?://((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})|(localhost))(:\d{1,4})?/.+')
+    s = re.compile('https?://((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})|(localhost))(:\d{1,5})?/.+')
     if s.match(url):
         return True
     else:
