@@ -44,6 +44,18 @@ python3 setup.py install
 ## Get started
 - Duplicate the config.yaml.example file and rename it to config.yaml(entrance-config.yaml for entrance server). Please configure the settings in the file properly according to your character (Entrance server, box and publisher).
 
+- Box Config
+```
+cp config.yaml.example config.yaml
+```
+   - Publisher Config
+```
+cp config.yaml.example config.yaml
+```
+   - Entrance Config
+```
+cp config.yaml.example entrance-config.yaml
+```
 - Run
 ```
 python3 run_box.py
