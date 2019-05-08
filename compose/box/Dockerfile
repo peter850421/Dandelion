@@ -1,4 +1,5 @@
-FROM python:3.6
+#FROM python:3.6
+FROM resin/raspberry-pi-alpine:3.6 AS build
 
 ENV PYTHONUNBUFFERED 1
 
