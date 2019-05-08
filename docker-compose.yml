@@ -1,0 +1,33 @@
+version: '2'
+
+services:
+  box:
+    build:
+      context: .
+      dockerfile: ./compose/box/Dockerfile
+    depends_on:
+      - redis
+    volumes:
+      - /tmp:/tmp
+      - /var/log/nginx:/var/log/nginx
+    command: ["python", "/app/run_box.py"]
+
+  redis:
+    image: mangoraft/redis-arm
+    environment:
+      - REDIS_PASS=**None**
+
+  nginx:
+    build:
+      context: .
+      dockerfile: ./compose/box/nginx/Dockerfile
+
+    volumes:
+      - /tmp:/tmp
+      - /var/log/nginx:/var/log/nginx
+      - /etc/localtime:/etc/localtime
+    ports:
+      - "7070:7070"
+      - "7072:7072"
+    depends_on:
+      - box
