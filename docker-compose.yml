@@ -26,7 +26,7 @@ services:
     volumes:
       - resin-data:/tmp
       - nginx:/var/log/nginx
-      - resin-data:/etc/localtime
+      
     ports:
       - "7070:7070"
       - "7072:7072"

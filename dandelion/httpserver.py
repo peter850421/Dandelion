@@ -391,7 +391,7 @@ class BoxAsyncServer(BaseAsyncServer):
     async def register_on_startup(self, app):
         await super(BoxAsyncServer, self).register_on_startup(app)
         app["expire_files_task"] = asyncio.ensure_future(self.delete_expire_files())
-        #app["update_nginx_log_file_task"] = asyncio.ensure_future(self.update_nginx_log_file())
+        app["update_nginx_log_file_task"] = asyncio.ensure_future(self.update_nginx_log_file())
 
     async def register_on_cleanup(self, app):
         app["expire_files_task"].cancel()
