@@ -3,7 +3,7 @@
 *.log*
 ### Project ###
 *-id.txt
-config.yaml
+###config.yaml###
 entrance-config.yaml
 
 ### OSX ###

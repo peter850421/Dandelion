@@ -1,0 +1,51 @@
+### Redis
+# If docker is used, then url should be redis://redis:6379
+REDIS_HOST: "redis"
+REDIS_PORT: 6379
+DB: 0
+
+# Should be a list (Start with an indent, a dash and a space)
+# Example: "https://ENTRANCE_IP:8000/dandelion/ws/"
+ENTRANCE_URLS:
+  - 'https://140.112.18.2:11073/dandelion/ws/'
+### BOX Settings
+BOX_SERVER_IP: "0.0.0.0"  # IP that server will bind to
+BOX_CLIENT_IP:            # IP for others to connect this box
+BOX_PORT: 7071
+BOX_SERVER_PROXY_PORT: 7070
+BASE_DIRECTORY: "/tmp"      # Directory to place received files
+BOX_PING_ENTRANCE_FREQ: 5
+SERVER_REDIS_MINSIZE: 10
+SERVER_REDIS_MAXSIZE: 20
+CLIENT_REDIS_MINSIZE: 10
+CLIENT_REDIS_MAXSIZE: 15
+
+### PUBLISHER Settings
+PUBLISHER_IP:
+MIN_HTTP_PEERS: 20
+PUBLISHER_REDIS_MINSIZE: 5
+PUBLISHER_REDIS_MAXSIZE: 10
+PUBLISHER_PING_ENTRANCE_FREQ: 10
+
+
+### ENTRANCE Settings
+ENTRANCE_IP: '140.112.41.151'
+ENTRANCE_PORT: 7071
+ENTRANCE_SERVER_PROXY_PORT: 11074
+ENTRANCE_REDIS_MINSIZE: 5
+ENTRANCE_REDIS_MAXSIZE: 10
+ENTRANCE_EXPIRE_BOX_TIME: 120
+AMOUNT_OF_BOXES_PER_REQUEST: 20
+ENTRANCE_MYSQL_HOST: "172.17.0.0"
+ENTRANCE_MYSQL_PASSWORD: "elnj4j;3xj4"
+ENTRANCE_MYSQL_DB: "live_stream_db"
+ENTRANCE_MYSQL_USER: "root"
+ENTRANCE_MYSQL_PORT: 3306
+ENTRANCE_OTHER_URLS:
+  -
+
+### Settings should not be touched
+BASE_URL: "/dandelion"
+WEBSOCKET_URL: "ws"
+
+
