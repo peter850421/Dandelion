@@ -1,5 +1,5 @@
 #FROM python:3.6
-FROM balenalib/raspberrypi3-python:3.6
+FROM balenalib/raspberrypi3-python:3.6-stretch-run
 
 ENV PYTHONUNBUFFERED 1
 
