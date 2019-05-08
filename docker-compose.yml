@@ -2,6 +2,7 @@ version: '2'
 volumes:
     resin-data:
     nginx:
+    time:
 services:
   box:
     build:
@@ -26,7 +27,7 @@ services:
     volumes:
       - resin-data:/tmp
       - nginx:/var/log/nginx
-      
+      - time:/etc/localtime
     ports:
       - "7070:7070"
       - "7072:7072"
