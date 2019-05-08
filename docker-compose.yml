@@ -7,9 +7,7 @@ services:
       dockerfile: ./compose/box/Dockerfile
     depends_on:
       - redis
-    volumes:
-      - /tmp:/tmp
-      - /var/log/nginx:/var/log/nginx
+    
     command: ["python", "/app/run_box.py"]
 
   redis:
@@ -21,11 +19,6 @@ services:
     build:
       context: .
       dockerfile: ./compose/box/nginx/Dockerfile
-
-    volumes:
-      - /tmp:/tmp
-      - /var/log/nginx:/var/log/nginx
-      - /etc/localtime:/etc/localtime
     ports:
       - "7070:7070"
       - "7072:7072"
