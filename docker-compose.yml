@@ -22,10 +22,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/box/nginx/Dockerfile
-    volumes:
-      - resin-data:/tmp
-      - resin-data:/var/log/nginx
-      - resin-data:/etc/localtime
+
     ports:
       - "7070:7070"
       - "7072:7072"
