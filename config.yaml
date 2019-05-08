@@ -9,7 +9,7 @@ DB: 0
 ENTRANCE_URLS:
   - 'https://140.112.18.2:11073/dandelion/ws/'
 ### BOX Settings
-BOX_SERVER_IP: "0.0.0.0"  # IP that server will bind to
+BOX_SERVER_IP: "127.0.0.1"  # IP that server will bind to
 BOX_CLIENT_IP:            # IP for others to connect this box
 BOX_PORT: 7071
 BOX_SERVER_PROXY_PORT: 7070
@@ -47,5 +47,3 @@ ENTRANCE_OTHER_URLS:
 ### Settings should not be touched
 BASE_URL: "/dandelion"
 WEBSOCKET_URL: "ws"
-
-
