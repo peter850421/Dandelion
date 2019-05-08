@@ -1,5 +1,5 @@
 #FROM python:3.6
-FROM resin/raspberrypi3-python3.6
+FROM balenalib/%%BALENA_MACHINE_NAME%%-python:3-stretch-run
 
 ENV PYTHONUNBUFFERED 1
 
